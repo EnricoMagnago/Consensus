@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"log"
 )
 
 type State int
@@ -14,7 +15,7 @@ const (
 	RUNNING
 )
 // interface for the function executed by threads.
-type WorkerFunction func(*ProcessConfiguration, *AtomicBool) int  //function type.
+type WorkerFunction func(*ProcessConfiguration, *AtomicBool, *int)  //function type, the last int is the retVal.
 
 // parameters to the function, should not be modified after the start (concurrency).
 type ProcessConfiguration struct {
@@ -49,12 +50,13 @@ func (abool *AtomicBool) get() bool {
 type Process struct {
 	configuration *ProcessConfiguration
 	state         State
-	terminator    *AtomicBool
+	terminator    AtomicBool
 	function      WorkerFunction
+	retVal        int
 }
 
 func newProcess(configuration *ProcessConfiguration, function WorkerFunction) Process {
-	return Process{configuration, false, STOP, function}
+	return Process{configuration, STOP, AtomicBool{false, sync.Mutex{}}, function, 0}
 }
 
 func (process *Process)start() bool {
@@ -63,11 +65,44 @@ func (process *Process)start() bool {
 		return false
 	case RUNNING:
 		return true
+	case STOP:
+		process.function(process.configuration, process.terminator, &process.retVal) // start thread.
+		process.state = RUNNING
+		return true
+	default:
+		log.Fatal("ERROR: unknown state")
+		return false
 	}
+}
 
-	go process.function(process.configuration) // start thread.
-	process.state = RUNNING
-	return true
+func (process *Process)isAlive() bool {
+	switch process.state {
+	case ERROR:
+		return false
+	case STOP:
+		return false
+	case RUNNING:
+		return true
+	default:
+		log.Fatal("ERROR: unknown state")
+		return false
+	}
+}
+
+func (process *Process)stop() bool {
+	switch process.state {
+	case ERROR:
+		return false
+	case STOP:
+		return true
+	case RUNNING:
+		process.terminator.set()
+		process.state = RUNNING
+		return true
+	default:
+		log.Fatal("ERROR: unknown state")
+		return false
+	}
 }
 
 //---------------MANAGER--------------
@@ -80,7 +115,7 @@ func newManager() Manager {
 	return Manager{make([]Process, 0)}
 }
 
-func (manager *Manager) addProcess(conf *ProcessConfiguration, worker *WorkerFunction) int {
+func (manager *Manager) addProcess(conf *ProcessConfiguration, worker WorkerFunction) int {
 	process := newProcess(conf, worker)
 	manager.processes = append(manager.processes, &process)
 	return len(manager.processes) - 1 // index in the slice.
@@ -92,7 +127,7 @@ func (manager *Manager) getProcessesNumber() int {
 
 //--------------FUNCTIONS IMPLEMENTING WORKER INTERFACE---------------
 
-func BenOr(conf *ProcessConfiguration, terminator *AtomicBool) int {
+func BenOr(conf *ProcessConfiguration, terminator *AtomicBool, retVal *int) {
 	return 0
 }
 

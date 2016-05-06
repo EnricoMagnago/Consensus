@@ -66,7 +66,7 @@ func (process *Process)start() bool {
 	case RUNNING:
 		return true
 	case STOP:
-		process.function(process.configuration, process.terminator, &process.retVal) // start thread.
+		process.function(process.configuration, &process.terminator, &process.retVal) // start thread.
 		process.state = RUNNING
 		return true
 	default:
@@ -112,7 +112,7 @@ type Manager struct {
 }
 
 func newManager() Manager {
-	return Manager{make([]Process, 0)}
+	return Manager{make([]*Process, 0)}
 }
 
 func (manager *Manager) addProcess(conf *ProcessConfiguration, worker WorkerFunction) int {
@@ -128,7 +128,9 @@ func (manager *Manager) getProcessesNumber() int {
 //--------------FUNCTIONS IMPLEMENTING WORKER INTERFACE---------------
 
 func BenOr(conf *ProcessConfiguration, terminator *AtomicBool, retVal *int) {
-	return 0
+	for !*terminator.get() {
+		*retVal = 1
+	}
 }
 
 func main() {

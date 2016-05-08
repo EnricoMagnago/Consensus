@@ -14,8 +14,8 @@ const (
 	STOP
 	RUNNING
 )
-// interface for the function executed by threads.
-type WorkerFunction func(*ProcessConfiguration, *AtomicBool, *int)  //function type, the last int is the retVal.
+// interface for the function executed by threads, must periodically check if AtomicBool is setted, if it's the case the thread must terminate.
+type WorkerFunction func(*ProcessConfiguration, *AtomicBool, *RetVal)  //function type, the last int is the retVal.
 
 // parameters to the function, should not be modified after the start (concurrency).
 type ProcessConfiguration struct {
@@ -44,19 +44,38 @@ func (abool *AtomicBool) get() bool {
 	return res
 }
 
+// --------------RETVAL---------------
+
+type RetVal struct {
+	integer int
+	mutex   sync.Mutex
+}
+
+func (retVal *RetVal)lock(){
+	retVal.mutex.Lock()
+}
+
+func (retVal *RetVal)unlock(){
+	retVal.mutex.Unlock()
+}
+
+func (retVal *RetVal)set(newValue int){
+	retVal.integer = newValue
+}
+
 
 // ----------------PROCESS--------------
 
 type Process struct {
 	configuration *ProcessConfiguration
 	state         State
-	terminator    AtomicBool
+	terminator    *AtomicBool
 	function      WorkerFunction
-	retVal        int
+	retVal        *RetVal
 }
 
 func newProcess(configuration *ProcessConfiguration, function WorkerFunction) Process {
-	return Process{configuration, STOP, AtomicBool{false, sync.Mutex{}}, function, 0}
+	return Process{configuration, STOP, &AtomicBool{false, sync.Mutex{}}, function, &RetVal{0, sync.Mutex{}}}
 }
 
 func (process *Process)start() bool {
@@ -66,13 +85,19 @@ func (process *Process)start() bool {
 	case RUNNING:
 		return true
 	case STOP:
-		process.function(process.configuration, &process.terminator, &process.retVal) // start thread.
+		go process.startFunction() // start thread.
 		process.state = RUNNING
 		return true
 	default:
 		log.Fatal("ERROR: unknown state")
 		return false
 	}
+}
+
+func (process *Process)startFunction(){
+	process.retVal.lock()
+	process.function(process.configuration, &process.terminator, &process.retVal)
+	process.retVal.unlock()
 }
 
 func (process *Process)isAlive() bool {

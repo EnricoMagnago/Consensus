@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
-	"log"
 )
 
 type State int
@@ -19,7 +18,13 @@ type WorkerFunction func(*ProcessConfiguration, *AtomicBool, *RetVal)  //functio
 
 // parameters to the function, should not be modified after the start (concurrency).
 type ProcessConfiguration struct {
-	name string
+	name         string
+	channel      chan string
+	processesIds []int
+}
+
+func newProcessConfiguration(name string, channel chan string, processesIds []int) *ProcessConfiguration {
+	return &ProcessConfiguration{name, channel, processesIds}
 }
 
 //--------------ATOMIC STATE-------------
@@ -43,7 +48,6 @@ func (astate *AtomicState) set(new State) bool {
 	case RUNNING: astate.value = new
 	default:
 		fmt.Errorf("ERROR: AtomicState.set: Unknow state")
-
 	}
 	astate.mutex.Unlock()
 	return res
@@ -116,10 +120,11 @@ type Process struct {
 	terminator    *AtomicBool
 	function      WorkerFunction
 	retVal        *RetVal
+	endChannel    chan bool
 }
 
 func newProcess(configuration *ProcessConfiguration, function WorkerFunction) Process {
-	return Process{configuration, newAtomicState(), newAtomicBool(), function, newRetVal()}
+	return Process{configuration, newAtomicState(), newAtomicBool(), function, newRetVal(), make(chan bool)}
 }
 
 func (process *Process)start() bool {
@@ -129,24 +134,20 @@ func (process *Process)start() bool {
 	case RUNNING:
 		return true
 	case STOP:
-		process._startFunction() // starts thread.
+		go process._startFunction() // starts thread.
 		process.state.set(RUNNING)
 		return true
-	default:
-		log.Fatal("ERROR: unknown state")
-		return false
 	}
+	return false
 }
 
 func (process *Process)_startFunction() {
-	process.retVal.lock() //unlock done by functionWrapper.
-	go process._functionWrapper()
-}
-
-func (process *Process)_functionWrapper() {
+	process.retVal.lock()
 	process.function(process.configuration, process.terminator, process.retVal)
 	process.retVal.unlock()
 	process.state.set(STOP)
+	process.endChannel <- true// scrivi su channel che hai finito.
+
 }
 
 func (process *Process)isAlive() bool {
@@ -157,10 +158,8 @@ func (process *Process)isAlive() bool {
 		return false
 	case RUNNING:
 		return true
-	default:
-		log.Fatal("ERROR: unknown state")
-		return false
 	}
+	return false
 }
 
 func (process *Process)stop() bool {
@@ -171,23 +170,23 @@ func (process *Process)stop() bool {
 		return true
 	case RUNNING:
 		process.terminator.set()
-		process.state.set(RUNNING)
 		return true
-	default:
-		log.Fatal("ERROR: unknown state")
-		return false
 	}
+	return false
 }
 
 func (process *Process)waitTermination() {
-	process.retVal.lock()
-	process.retVal.unlock()
+	switch process.state.get(){
+	case RUNNING: <-process.endChannel // leggi dal channel per terminazione del thread.
+	case STOP:
+	case ERROR:
+	}
 }
 
 //---------------MANAGER--------------
 
 type Manager struct {
-	processes []*Process
+	processes []*Process // change data structure.
 }
 
 func newManager() Manager {
@@ -213,6 +212,19 @@ func (manager *Manager) startProcesses() bool {
 	return true
 }
 
+func (manager *Manager) stopProcess(processId int) bool {
+	return manager.processes[processId].stop()
+}
+
+func (manager *Manager) stopProcesses() bool {
+	for i := 0; i < len(manager.processes); i++ {
+		if (!manager.stopProcess(i)) {
+			return false
+		}
+	}
+	return true
+}
+
 func (manager *Manager) waitProcessTermination(processId int) {
 	manager.processes[processId].waitTermination()
 }
@@ -229,20 +241,37 @@ func (manager *Manager) getProcessesNumber() int {
 
 //--------------FUNCTIONS IMPLEMENTING WORKER INTERFACE---------------
 
-func BenOr(conf *ProcessConfiguration, terminator *AtomicBool, retVal *RetVal) {
-	fmt.Printf("\tave sono processo %s\n", conf.name)
+func write(conf *ProcessConfiguration, terminator *AtomicBool, retVal *RetVal) {
+	fmt.Printf("\tave sono processo %s, scrivo nel channel\n", conf.name)
+	conf.channel <- conf.name
+	//for !terminator.get() {
+	//retVal.set(1)
+	//}
+}
+
+func read(conf *ProcessConfiguration, terminator *AtomicBool, retVal *RetVal) {
+	fmt.Printf("\tave sono processo %s: ho letto: %s\n", conf.name, <-conf.channel)
 	//for !terminator.get() {
 	retVal.set(1)
 	//}
 }
 
 func main() {
+	var channel chan string = make(chan string, 2)
 	var processManager Manager = newManager()
-	for i := 0; i < 10; i++ {
-		var conf ProcessConfiguration = ProcessConfiguration{"pro" + strconv.Itoa(i)}
-		processManager.addProcess(&conf, BenOr)
+	var conf *ProcessConfiguration = newProcessConfiguration("pro" + strconv.Itoa(0), channel, make([]int, 0))
+	processManager.addProcess(conf, write)
+	conf = newProcessConfiguration("pro" + strconv.Itoa(1), channel, make([]int, 0))
+	processManager.addProcess(conf, read)
+	/*
+	for i := 0; i < 2; i++ {
+		var conf *ProcessConfiguration = newProcessConfiguration("pro" + strconv.Itoa(i), channel, make([]int, 0))
+		processManager.addProcess(conf, BenOr)
 	}
-	fmt.Printf("processes created, tot:%d", processManager.getProcessesNumber())
+	*/
+	//fmt.Printf("processes created, tot:%d\n", processManager.getProcessesNumber())
 	processManager.startProcesses()
+	fmt.Print("processes started");
 	processManager.waitProcessesTermination()
+	fmt.Print("arrivederci!\n")
 }

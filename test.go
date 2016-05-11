@@ -22,12 +22,52 @@ type ProcessConfiguration struct {
 	name string
 }
 
+//--------------ATOMIC STATE-------------
+
+// atomic access to a bool variable.
+type AtomicState struct {
+	value State
+	mutex sync.RWMutex // read-write mutex.
+}
+
+func newAtomicState() *AtomicState {
+	return &AtomicState{STOP, sync.RWMutex{}}
+}
+
+func (astate *AtomicState) set(new State) bool {
+	var res = true
+	astate.mutex.Lock()
+	switch astate.value{
+	case ERROR: res = false
+	case STOP: astate.value = new
+	case RUNNING: astate.value = new
+	default:
+		fmt.Errorf("ERROR: AtomicState.set: Unknow state")
+
+	}
+	astate.mutex.Unlock()
+	return res
+}
+
+func (astate *AtomicState) get() State {
+	var res State
+	astate.mutex.RLock()
+	res = astate.value
+	astate.mutex.RUnlock()
+	return res
+}
+
+
 //--------------ATOMIC BOOL-------------
 
 // atomic access to a bool variable.
 type AtomicBool struct {
 	boolean bool
-	mutex   sync.Mutex
+	mutex   sync.RWMutex // read-write mutex.
+}
+
+func newAtomicBool() *AtomicBool {
+	return &AtomicBool{false, sync.RWMutex{}}
 }
 
 func (abool *AtomicBool) set() {
@@ -38,9 +78,9 @@ func (abool *AtomicBool) set() {
 
 func (abool *AtomicBool) get() bool {
 	var res bool = false
-	abool.mutex.Lock()
+	abool.mutex.RLock()
 	res = abool.boolean
-	abool.mutex.Unlock()
+	abool.mutex.RUnlock()
 	return res
 }
 
@@ -51,15 +91,19 @@ type RetVal struct {
 	mutex   sync.Mutex
 }
 
-func (retVal *RetVal)lock(){
+func newRetVal() *RetVal {
+	return &RetVal{0, sync.Mutex{}}
+}
+
+func (retVal *RetVal)lock() {
 	retVal.mutex.Lock()
 }
 
-func (retVal *RetVal)unlock(){
+func (retVal *RetVal)unlock() {
 	retVal.mutex.Unlock()
 }
 
-func (retVal *RetVal)set(newValue int){
+func (retVal *RetVal)set(newValue int) {
 	retVal.integer = newValue
 }
 
@@ -68,25 +112,25 @@ func (retVal *RetVal)set(newValue int){
 
 type Process struct {
 	configuration *ProcessConfiguration
-	state         State
+	state         *AtomicState
 	terminator    *AtomicBool
 	function      WorkerFunction
 	retVal        *RetVal
 }
 
 func newProcess(configuration *ProcessConfiguration, function WorkerFunction) Process {
-	return Process{configuration, STOP, &AtomicBool{false, sync.Mutex{}}, function, &RetVal{0, sync.Mutex{}}}
+	return Process{configuration, newAtomicState(), newAtomicBool(), function, newRetVal()}
 }
 
 func (process *Process)start() bool {
-	switch process.state {
+	switch process.state.get() {
 	case ERROR:
 		return false
 	case RUNNING:
 		return true
 	case STOP:
-		go process.startFunction() // start thread.
-		process.state = RUNNING
+		process._startFunction() // starts thread.
+		process.state.set(RUNNING)
 		return true
 	default:
 		log.Fatal("ERROR: unknown state")
@@ -94,14 +138,19 @@ func (process *Process)start() bool {
 	}
 }
 
-func (process *Process)startFunction(){
-	process.retVal.lock()
-	process.function(process.configuration, &process.terminator, &process.retVal)
+func (process *Process)_startFunction() {
+	process.retVal.lock() //unlock done by functionWrapper.
+	go process._functionWrapper()
+}
+
+func (process *Process)_functionWrapper() {
+	process.function(process.configuration, process.terminator, process.retVal)
 	process.retVal.unlock()
+	process.state.set(STOP)
 }
 
 func (process *Process)isAlive() bool {
-	switch process.state {
+	switch process.state.get() {
 	case ERROR:
 		return false
 	case STOP:
@@ -115,19 +164,24 @@ func (process *Process)isAlive() bool {
 }
 
 func (process *Process)stop() bool {
-	switch process.state {
+	switch process.state.get() {
 	case ERROR:
 		return false
 	case STOP:
 		return true
 	case RUNNING:
 		process.terminator.set()
-		process.state = RUNNING
+		process.state.set(RUNNING)
 		return true
 	default:
 		log.Fatal("ERROR: unknown state")
 		return false
 	}
+}
+
+func (process *Process)waitTermination() {
+	process.retVal.lock()
+	process.retVal.unlock()
 }
 
 //---------------MANAGER--------------
@@ -146,24 +200,49 @@ func (manager *Manager) addProcess(conf *ProcessConfiguration, worker WorkerFunc
 	return len(manager.processes) - 1 // index in the slice.
 }
 
+func (manager *Manager) startProcess(processId int) bool {
+	return manager.processes[processId].start()
+}
+
+func (manager *Manager) startProcesses() bool {
+	for i := 0; i < len(manager.processes); i++ {
+		if (!manager.startProcess(i)) {
+			return false
+		}
+	}
+	return true
+}
+
+func (manager *Manager) waitProcessTermination(processId int) {
+	manager.processes[processId].waitTermination()
+}
+
+func (manager *Manager) waitProcessesTermination() {
+	for i := 0; i < len(manager.processes); i++ {
+		manager.waitProcessTermination(i)
+	}
+}
+
 func (manager *Manager) getProcessesNumber() int {
 	return len(manager.processes)
 }
 
 //--------------FUNCTIONS IMPLEMENTING WORKER INTERFACE---------------
 
-func BenOr(conf *ProcessConfiguration, terminator *AtomicBool, retVal *int) {
-	for !*terminator.get() {
-		*retVal = 1
-	}
+func BenOr(conf *ProcessConfiguration, terminator *AtomicBool, retVal *RetVal) {
+	fmt.Printf("\tave sono processo %s\n", conf.name)
+	//for !terminator.get() {
+	retVal.set(1)
+	//}
 }
 
 func main() {
 	var processManager Manager = newManager()
-	fmt.Printf("initSize: %d\n", processManager.getProcessesNumber())
 	for i := 0; i < 10; i++ {
 		var conf ProcessConfiguration = ProcessConfiguration{"pro" + strconv.Itoa(i)}
-		var id int = processManager.addProcess(&conf, BenOr)
-		fmt.Printf("%d)\n\tadded process, id: %d\n\tsize: %d\n", i, id, processManager.getProcessesNumber())
+		processManager.addProcess(&conf, BenOr)
 	}
+	fmt.Printf("processes created, tot:%d", processManager.getProcessesNumber())
+	processManager.startProcesses()
+	processManager.waitProcessesTermination()
 }

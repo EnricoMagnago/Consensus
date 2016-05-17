@@ -43,11 +43,11 @@
       <root url="file:///usr/lib/go-1.6/src/strconv" />
       <root url="file:///usr/lib/go-1.6/src/unicode" />
       <root url="file:///usr/lib/go-1.6/src/cmd" />
-      <root url="file://$PROJECT_DIR$/process" />
-      <root url="file://$PROJECT_DIR$/processManager" />
-      <root url="file://$PROJECT_DIR$/util" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />
+    <excluded>
+      <root url="file://$PROJECT_DIR$" />
+    </excluded>
   </library>
 </component>

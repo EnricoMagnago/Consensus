@@ -23,7 +23,7 @@ func (manager *Manager) addProcess(worker process.WorkerFunction, conf *process.
 	return len(manager.processes) - 1 // index in the slice.
 }
 
-func (manager *Manager) addProcesses(workers []process.WorkerFunction) {
+func (manager *Manager) AddProcesses(workers []process.WorkerFunction) {
 	var conf *process.ProcessConfiguration = process.NewProcessConfiguration(manager.channel, manager.processNumber)
 
 	for i := 0; i < manager.processNumber; i++ {

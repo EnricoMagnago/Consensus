@@ -1,23 +1,34 @@
 package processManager
 
-import(
+import (
 	"consensus/process"
+	"consensus/channel"
 )
 
 //---------------MANAGER--------------
 
 type Manager struct {
-	processes []*process.Process // change data structure.
+	processes     []*process.Process // change data structure.
+	channel       *channel.Channel
+	processNumber int
 }
 
-func NewManager() Manager {
-	return Manager{make([]*process.Process, 0)}
+func NewManager(processNumber int, mean int, variance int) Manager {
+	return Manager{make([]*process.Process, 0, processNumber), channel.NewChannel(processNumber, mean, variance), processNumber}
 }
 
-func (manager *Manager) AddProcess(conf *process.ProcessConfiguration, worker process.WorkerFunction) int {
+func (manager *Manager) addProcess(worker process.WorkerFunction, conf *process.ProcessConfiguration) int {
 	process := process.NewProcess(conf, worker)
 	manager.processes = append(manager.processes, &process)
 	return len(manager.processes) - 1 // index in the slice.
+}
+
+func (manager *Manager) AddProcesses(workers []process.WorkerFunction) {
+	var conf *process.ProcessConfiguration = process.NewProcessConfiguration(manager.channel, manager.processNumber)
+
+	for i := 0; i < manager.processNumber; i++ {
+		manager.addProcess(workers[i], conf)
+	}
 }
 
 func (manager *Manager) StartProcess(processId int) bool {

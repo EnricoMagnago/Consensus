@@ -2,6 +2,7 @@ package process
 
 import (
 	"consensus/util"
+	"consensus/channel"
 )
 
 // interface for the function executed by threads, must periodically check if AtomicBool is setted, if it's the case the thread must terminate.
@@ -10,11 +11,13 @@ type WorkerFunction func(*ProcessConfiguration, *util.AtomicBool, *util.RetVal) 
 
 // parameters to the function, should not be modified after the start (concurrency).
 type ProcessConfiguration struct {
-	name         string
-	channel      chan string
-	processesIds []int
+	channel         *channel.Channel
+	processesNumber int
 }
 
+func NewProcessConfiguration(channel *channel.Channel, processNumber int) *ProcessConfiguration{
+	return &ProcessConfiguration{channel, processNumber}
+}
 
 // ----------------PROCESS--------------
 

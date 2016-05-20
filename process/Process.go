@@ -11,12 +11,13 @@ type WorkerFunction func(*ProcessConfiguration, *util.AtomicBool, *util.RetVal) 
 
 // parameters to the function, should not be modified after the start (concurrency).
 type ProcessConfiguration struct {
-	channel         *channel.Channel
-	processesNumber int
+	Channel         *channel.Channel
+	ProcessId       int // process ID
+	ProcessesNumber int // number of processes in the system.
 }
 
-func NewProcessConfiguration(channel *channel.Channel, processNumber int) *ProcessConfiguration{
-	return &ProcessConfiguration{channel, processNumber}
+func NewProcessConfiguration(channel *channel.Channel, processId int, processNumber int) *ProcessConfiguration {
+	return &ProcessConfiguration{channel, processId, processNumber}
 }
 
 // ----------------PROCESS--------------
@@ -82,10 +83,15 @@ func (process *Process)Stop() bool {
 	return false
 }
 
-func (process *Process)WaitTermination() {
+func (process *Process)WaitTermination() *util.RetVal {
 	switch process.state.Get(){
-	case util.RUNNING: <-process.endChannel // leggi dal channel per terminazione del thread.
+	case util.RUNNING:
+		<-process.endChannel // leggi dal channel per terminazione del thread.
+		return process.retVal
 	case util.STOP:
+		return process.retVal
 	case util.ERROR:
+		return nil
 	}
+	return nil
 }

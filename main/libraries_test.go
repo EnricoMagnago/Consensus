@@ -1,16 +1,51 @@
 package main
 
 import (
+	"testing"
 	"consensus/processManager"
 	"consensus/process"
+	"consensus/util"
+	"fmt"
+	"consensus/channel"
 )
 
-func main() {
+func benOr(conf *process.ProcessConfiguration, terminator *util.AtomicBool, retVal *util.RetVal) {
+	var ID int = conf.ProcessId
+	var text string = "ciao"
+
+	var message *channel.Message = channel.NewMessage(ID, -1, text)
+
+	conf.Channel.BroadcastSend(message)
+	for i := 0; i < conf.ProcessesNumber - 1; i++ {
+		var recMessage *channel.Message = nil
+		for recMessage == nil {
+			recMessage = conf.Channel.Deliver(ID)
+			if recMessage != nil {
+				fmt.Printf("\t%d) recived: %s r: %d ; s: %d\n", ID, recMessage.GetText(), recMessage.GetReceiver(), recMessage.GetSender())
+			}
+		}
+	}
+	retVal.Set(ID)
+}
+
+func Test(t *testing.T) {
 	var processNumber int = 3
-	var delayMean int = 100
-	var variance int = 10
+	var delayMean int = 2000
+	var variance int = 1000
 	var manager processManager.Manager = processManager.NewManager(processNumber, delayMean, variance)
-	var workers [processNumber]process.WorkerFunction
-	// TODO set workers functions
+	var workers []process.WorkerFunction = make([]process.WorkerFunction, 0, processNumber)
+	for i := 0; i < processNumber; i++ {
+		workers = append(workers, benOr)
+	}
 	manager.AddProcesses(workers)
+	manager.StartProcesses()
+	//time.Sleep(time.Duration(5) * time.Second)
+	manager.StopProcesses()
+	manager.WaitProcessesTermination()
+
+	for i := 0; i < processNumber; i++ {
+		if manager.GetRetval(i).Get() != i {
+			t.Errorf("found : %d expected: %d", manager.GetRetval(i).Get(), i)
+		}
+	}
 }

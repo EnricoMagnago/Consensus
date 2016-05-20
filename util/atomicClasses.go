@@ -29,6 +29,10 @@ func (retVal *RetVal)Set(newValue int) {
 	retVal.integer = newValue
 }
 
+func (retVal *RetVal)Get() int {
+	return retVal.integer
+}
+
 
 //--------------ATOMIC BOOL-------------
 

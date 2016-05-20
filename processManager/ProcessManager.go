@@ -3,6 +3,7 @@ package processManager
 import (
 	"consensus/process"
 	"consensus/channel"
+	"consensus/util"
 )
 
 //---------------MANAGER--------------
@@ -24,9 +25,8 @@ func (manager *Manager) addProcess(worker process.WorkerFunction, conf *process.
 }
 
 func (manager *Manager) AddProcesses(workers []process.WorkerFunction) {
-	var conf *process.ProcessConfiguration = process.NewProcessConfiguration(manager.channel, manager.processNumber)
-
 	for i := 0; i < manager.processNumber; i++ {
+		var conf *process.ProcessConfiguration = process.NewProcessConfiguration(manager.channel, i, manager.processNumber)
 		manager.addProcess(workers[i], conf)
 	}
 }
@@ -57,14 +57,14 @@ func (manager *Manager) StopProcesses() bool {
 	return true
 }
 
-func (manager *Manager) WaitProcessTermination(processId int) {
-	manager.processes[processId].WaitTermination()
-}
-
 func (manager *Manager) WaitProcessesTermination() {
 	for i := 0; i < len(manager.processes); i++ {
-		manager.WaitProcessTermination(i)
+		manager.GetRetval(i)
 	}
+}
+
+func (manager *Manager) GetRetval(processId int) *util.RetVal {
+	return manager.processes[processId].WaitTermination()
 }
 
 func (manager *Manager) GetProcessesNumber() int {

@@ -1,4 +1,4 @@
-PACKAGES = util channel process processManager
+PACKAGES = util channel process processManager main
 
 .PHONY: build
 build: $(PACKAGES)
@@ -15,6 +15,6 @@ install: $(PACKAGES)
 	cd processManager; go install
 
 .PHONY: test
-test: $(PACKAGES) main install
+test: $(PACKAGES) install
 	cd main; go test
 	

@@ -11,9 +11,8 @@ import (
 
 func benOr(conf *process.ProcessConfiguration, terminator *util.AtomicBool, retVal *util.RetVal) {
 	var ID int = conf.ProcessId
-	var text string = "ciao"
 
-	var message *channel.Message = channel.NewMessage(ID, -1, text)
+	var message *channel.Message = channel.NewMessage(ID, -1, channel.REPORT, 0, 1)
 
 	conf.Channel.BroadcastSend(message)
 	for i := 0; i < conf.ProcessesNumber - 1; i++ {
@@ -21,7 +20,7 @@ func benOr(conf *process.ProcessConfiguration, terminator *util.AtomicBool, retV
 		for recMessage == nil {
 			recMessage = conf.Channel.Deliver(ID)
 			if recMessage != nil {
-				fmt.Printf("\t%d) recived: %s r: %d ; s: %d\n", ID, recMessage.GetText(), recMessage.GetReceiver(), recMessage.GetSender())
+				fmt.Printf("\t%d) r: %d ; s: %d\n", ID, recMessage.GetReceiver(), recMessage.GetSender())
 			}
 		}
 	}

@@ -9,14 +9,23 @@ import (
 
 //--------MESSAGE----------
 
+type MessageType int
+
+const (
+	REPORT MessageType = iota
+	PROPOSAL
+)
+
 type Message struct {
-	senderId   int
-	receiverId int
-	message    string
+	senderId    int
+	receiverId  int
+	messageType MessageType
+	round       int
+	estimate    int
 }
 
-func NewMessage(senderId int, receiverId int, message string) *Message {
-	return &Message{senderId, receiverId, message}
+func NewMessage(senderId int, receiverId int, messageType MessageType, round int, estimate int) *Message {
+	return &Message{senderId, receiverId, messageType, round, estimate}
 }
 
 func (message *Message)GetSender() int {
@@ -26,8 +35,16 @@ func (message *Message)GetReceiver() int {
 	return message.receiverId
 }
 
-func (message *Message)GetText() string {
-	return message.message
+func (message *Message)GetMessageType() MessageType {
+	return message.messageType
+}
+
+func (message *Message)GetRound() int {
+	return message.round
+}
+
+func (message *Message)GetEstimate() int {
+	return message.estimate
 }
 
 type MessageDeliveryTime struct {
@@ -80,6 +97,7 @@ type Channel struct {
 }
 
 func NewChannel(processNumber int, mean int, variance int) *Channel {
+	rand.Seed(int64(time.Now().Nanosecond()))
 	var channelCapacity int = processNumber * processNumber
 
 	var channel Channel = Channel{processNumber, channelCapacity, make(chan Message, channelCapacity), make([]MessagesQueue, processNumber), int64(mean), int64(variance)}
@@ -139,10 +157,8 @@ func (channel *Channel) Send(message *Message) bool {
 func (channel *Channel) BroadcastSend(message *Message) bool {
 	var res bool = true
 	for i := 0; i < channel.processesNumber; i++ {
-		if i != message.GetSender() {
-			message.receiverId = i
-			res = res && channel.Send(message)
-		}
+		message.receiverId = i
+		res = res && channel.Send(message)
 	}
 	return res
 }

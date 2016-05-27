@@ -29,7 +29,10 @@ func BenOr(conf *process.ProcessConfiguration, terminator *util.AtomicBool, retV
 		ROUND += 1
 		fmt.Printf("%d) est: %d; round: %d\n", ID, EST, ROUND);
 		var message *channel.Message = channel.NewMessage(ID, -1, channel.REPORT, ROUND, EST)
-		conf.Channel.BroadcastSend(message)
+		var broadCastres bool = conf.Channel.BroadcastSend(message)
+		if !broadCastres {
+			fmt.Errorf("ERROR BenOr in the broadcast send of report messages")
+		}
 		var majority = waitMajority(N, F, conf.Channel, &ROUND, ID, maxVal, terminator)
 		switch(majority){
 		case -1:
@@ -41,7 +44,10 @@ func BenOr(conf *process.ProcessConfiguration, terminator *util.AtomicBool, retV
 		//majority can be -1 -> no majority.
 
 		var msgProp *channel.Message = channel.NewMessage(ID, -1, channel.PROPOSAL, ROUND, majority)
-		conf.Channel.BroadcastSend(msgProp) // can be -1
+		broadCastres = conf.Channel.BroadcastSend(msgProp) // can be -1
+		if !broadCastres {
+			fmt.Errorf("ERROR BenOr in the broadcast send of proposal messages")
+		}
 		var proposalRet []int = waitProposal(N, F, conf.Channel, &ROUND, ID, maxVal, terminator) //wait a proposal with a setted estimate (!= -1), returns the value if present, -1 if not
 		var majorityEst int = proposalRet[0] // value of the found majority, -1 if not found.
 		var counter int = proposalRet[1] // number of proposal received with majorityEst value.
@@ -81,7 +87,7 @@ func waitProposal(n int, f int, chann *channel.Channel, round *int, processId in
 		var message *channel.Message = chann.Deliver(processId)
 		if message != nil &&  message.GetMessageType() == channel.PROPOSAL {
 			messageNumber++
-			fmt.Printf("%dp) received %d from: %d\n", processId, message.GetEstimate(), message.GetSender())
+			//fmt.Printf("%dp) received %d from: %d\n", processId, message.GetEstimate(), message.GetSender())
 
 			// message with different round or wrong type.
 			if message.GetRound() != *round {
@@ -111,7 +117,7 @@ func waitProposal(n int, f int, chann *channel.Channel, round *int, processId in
 			} // the sender has not seen a majority	-> do nothing.
 		}
 	}
-	fmt.Printf("%dp) majority counter: %d; est:%d\n", processId, majorityCounter, majorityEst)
+	//fmt.Printf("%dp) majority counter: %d; est:%d\n", processId, majorityCounter, majorityEst)
 	var res []int = make([]int, 2)
 	res[0] = majorityEst
 	res[1] = majorityCounter
@@ -165,6 +171,6 @@ func waitMajority(n int, f int, chann *channel.Channel, round *int, processId in
 			}
 		}
 	}
-	fmt.Printf("%d) ret: %d\n", processId, res)
+	//fmt.Printf("%d) ret: %d\n", processId, res)
 	return res
 }

@@ -1,20 +1,29 @@
 PACKAGES = util channel process processManager main
+GOPATH := /home/enrico/Projects/GoProjects
+export GOPATH
 
 .PHONY: build
-build: $(PACKAGES)
+build: $(PACKAGES) environment
 	cd util; go build
 	cd channel; go build
 	cd process; go build
 	cd processManager; go build
+	cd main; go build
 
-.PHONY: install
+.PHONY: install environment
 install: $(PACKAGES)
 	cd util; go install
 	cd channel; go install
 	cd process; go install
 	cd processManager; go install
+	cd main; go install
 
-.PHONY: test
+.PHONY: test environment
 test: $(PACKAGES) install
 	cd main; go test
+
+.PHONY: clean
+clean: 
+	rm -rf ../../pkg/*/consensus
+	rm -f ../../bin/consensus
 	

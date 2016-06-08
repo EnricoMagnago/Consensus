@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"time"
+	"sync"
 )
 
 
@@ -60,30 +61,39 @@ func newMessageDeliveryTime(message *Message, deliveryTime *time.Time) *MessageD
 
 type MessagesQueue struct {
 	queue []*MessageDeliveryTime
+	mutex sync.Mutex
 }
 
 func NewMessagesQueue() *MessagesQueue {
-	return &MessagesQueue{make([]*MessageDeliveryTime, 0)}
+	return &MessagesQueue{make([]*MessageDeliveryTime, 0), sync.Mutex{}}
 }
 
 func (messageQueue *MessagesQueue) IsEmpty() bool {
-	return len(messageQueue.queue) == 0
+	var res bool
+	messageQueue.mutex.Lock()
+	res = (len(messageQueue.queue) == 0)
+	messageQueue.mutex.Unlock()
+	return res
 }
 
 func (messageQueue *MessagesQueue) Add(message *MessageDeliveryTime) {
+	messageQueue.mutex.Lock()
 	messageQueue.queue = append(messageQueue.queue, message)
+	messageQueue.mutex.Unlock()
 }
 func (messageQueue *MessagesQueue) Pop() *Message {
 	if messageQueue.IsEmpty() {
 		return nil
 	}
 	var message *Message = nil
+	messageQueue.mutex.Lock()
 	if messageQueue.queue[0].deliveryTime.Before(time.Now()) {
 		message = messageQueue.queue[0].message
 		messageQueue.queue = messageQueue.queue[1:] // remove from the queue.
-	}else{
+	} else {
 		fmt.Println("sorry you have to wait")
 	}
+	messageQueue.mutex.Unlock()
 	return message
 }
 
@@ -161,8 +171,8 @@ func (channel *Channel) BroadcastSend(message *Message) bool {
 	for i := 0; i < channel.processesNumber; i++ {
 		message.receiverId = i
 		res = res && channel.Send(message)
-		if !res{
-			fmt.Errorf("ERROR broadcast send to %d failed",i)
+		if !res {
+			fmt.Errorf("ERROR broadcast send to %d failed", i)
 		}
 	}
 	return res

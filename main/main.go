@@ -71,6 +71,7 @@ func main() {
 		workers = append(workers, BenOr)
 	}
 	manager.AddProcesses(workers)
+
 	var command Command = ERROR
 	for command != QUIT {
 		fmt.Print("> ")
@@ -108,8 +109,4 @@ func main() {
 			manager.GetRetval(id)
 		}
 	}
-	manager.StartProcesses()
-	//time.Sleep(time.Duration(5) * time.Second)
-	manager.WaitProcessesTermination()
-
 }

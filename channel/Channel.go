@@ -82,6 +82,8 @@ func (messageQueue *MessagesQueue) Pop() *Message {
 	if messageQueue.queue[0].deliveryTime.Before(time.Now()) {
 		message = messageQueue.queue[0].message
 		messageQueue.queue = messageQueue.queue[1:] // remove from the queue.
+	}else{
+		fmt.Println("sorry you have to wait")
 	}
 	return message
 }
@@ -169,6 +171,9 @@ func (channel *Channel) BroadcastSend(message *Message) bool {
 		fmt.Printf("Send: %d\n",i)
 		message.receiverId = i
 		res = res && channel.Send(message)
+		if !res{
+			fmt.Errorf("ERROR broadcast send to %d failed",i)
+		}
 	}
 	return res
 }

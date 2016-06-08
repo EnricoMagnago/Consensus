@@ -51,10 +51,9 @@ func readInt(n *int) {
 }
 
 func main() {
-
-	var processNumber int = 5
-	var delayMean int = 000
-	var variance int = 000
+	var processNumber int = 3
+	var delayMean int = 2000
+	var variance int = 1000
 
 	fmt.Println("\tBen-Or protocol simulator\n\t\tby: Roberto Fellin, Enrico Magnago\n\n")
 
@@ -66,13 +65,13 @@ func main() {
 	fmt.Print("\n\t- channel delay variance: ")
 	readInt(&variance)
 
-
 	var manager processManager.Manager = processManager.NewManager(processNumber, delayMean, variance)
 	var workers []process.WorkerFunction = make([]process.WorkerFunction, 0, processNumber)
 	for i := 0; i < processNumber; i++ {
 		workers = append(workers, BenOr)
 	}
 	manager.AddProcesses(workers)
+
 	var command Command = ERROR
 	for command != QUIT {
 		fmt.Print("> ")
@@ -110,8 +109,4 @@ func main() {
 			manager.GetRetval(id)
 		}
 	}
-	manager.StartProcesses()
-	//time.Sleep(time.Duration(5) * time.Second)
-	manager.WaitProcessesTermination()
-
 }

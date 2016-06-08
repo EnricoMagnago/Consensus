@@ -1,6 +1,5 @@
 PACKAGES = util channel process processManager main
-GOPATH := /home/enrico/Projects/GoProjects
-export GOPATH
+
 
 .PHONY: build
 build: $(PACKAGES) environment

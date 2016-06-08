@@ -22,6 +22,7 @@ type Message struct {
 	messageType MessageType
 	round       int
 	estimate    int
+
 }
 
 func NewMessage(senderId int, receiverId int, messageType MessageType, round int, estimate int) *Message {
@@ -94,13 +95,15 @@ type Channel struct {
 	messagesBuffer  []MessagesQueue
 	mean            int64
 	variance        int64
+	count int
+	countSend int
 }
 
 func NewChannel(processNumber int, mean int, variance int) *Channel {
 	rand.Seed(int64(time.Now().Nanosecond()))
 	var channelCapacity int = processNumber * processNumber
 
-	var channel Channel = Channel{processNumber, channelCapacity, make(chan Message, channelCapacity), make([]MessagesQueue, processNumber), int64(mean), int64(variance)}
+	var channel Channel = Channel{processNumber, channelCapacity, make(chan Message, channelCapacity), make([]MessagesQueue, processNumber), int64(mean), int64(variance),0,0}
 	for i := 0; i < processNumber; i++ {
 		channel.messagesBuffer[i] = *NewMessagesQueue()
 	}
@@ -126,12 +129,17 @@ reads messages from the gochannel until empty or a message for the process with 
 if id = -2, reads all the messages from the channel.
  */
 func (channel *Channel) receive(id int) {
+
 	var lastId int = -1
 	for !channel.isEmpty() && lastId != id {
+		fmt.Printf("Rec %d",id);
+		channel.count++
 		var message Message = <-channel.gochannel
 		lastId = message.GetReceiver()
 		channel.messagesBuffer[lastId].Add(newMessageDeliveryTime(&message, channel.generateDeliveryTime()))
 	}
+
+
 }
 
 func (channel *Channel) receiveAll() {
@@ -148,6 +156,7 @@ func (channel *Channel) Send(message *Message) bool {
 	}
 	if message.GetSender() > -1 && message.GetSender() < channel.processesNumber &&  message.GetReceiver() > -1 && message.GetReceiver() < channel.processesNumber {
 		channel.gochannel <- *message
+		channel.countSend++
 		return true
 	}
 	fmt.Errorf("WARNING: wrong process id, can not send message")
@@ -157,17 +166,25 @@ func (channel *Channel) Send(message *Message) bool {
 func (channel *Channel) BroadcastSend(message *Message) bool {
 	var res bool = true
 	for i := 0; i < channel.processesNumber; i++ {
+		fmt.Printf("Send: %d\n",i)
 		message.receiverId = i
 		res = res && channel.Send(message)
 	}
 	return res
 }
 
-func (channel *Channel) Deliver(processId int) *Message {
+func (channel *Channel) Deliver(processId int, round int) *Message {
 	if channel.messagesBuffer[processId].IsEmpty() {
+		//fmt.Printf("entrato1");
 		channel.receive(processId)
+		//fmt.Printf("entrato3");
+		//if(channel.count!=0){
+		//fmt.Printf("Send: %d, Rec: %d Round: %d\n",channel.countSend,channel.count, round)}
 	}
 	var res *Message = channel.messagesBuffer[processId].Pop()
+	if res==nil{
+
+	}
 	return res
 }
 

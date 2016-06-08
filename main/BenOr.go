@@ -78,10 +78,12 @@ func waitProposal(n int, f int, chann *channel.Channel, round *int, processId in
 	var majorityEst int = -1 // which value has the majority. -1 no majority.
 	// exit when a majority is found or when delivered n-f messages with the correct round and type.
 	for messageNumber < (n - f) && !terminator.Get() {
-		var message *channel.Message = chann.Deliver(processId)
+		//fmt.Printf("Proposal: %d, %d\n", processId,messageNumber)
+		var message *channel.Message = chann.Deliver(processId, *round)
 		if message != nil &&  message.GetMessageType() == channel.PROPOSAL {
+			//fmt.Printf("%d) cccc\n", processId)
 			messageNumber++
-			fmt.Printf("%dp) received %d from: %d\n", processId, message.GetEstimate(), message.GetSender())
+			//fmt.Printf("%dp) received %d from: %d\n", processId, message.GetEstimate(), message.GetSender())
 
 			// message with different round or wrong type.
 			if message.GetRound() != *round {
@@ -111,7 +113,7 @@ func waitProposal(n int, f int, chann *channel.Channel, round *int, processId in
 			} // the sender has not seen a majority	-> do nothing.
 		}
 	}
-	fmt.Printf("%dp) majority counter: %d; est:%d\n", processId, majorityCounter, majorityEst)
+	//fmt.Printf("%dp) majority counter: %d; est:%d\n", processId, majorityCounter, majorityEst)
 	var res []int = make([]int, 2)
 	res[0] = majorityEst
 	res[1] = majorityCounter
@@ -137,7 +139,8 @@ func waitMajority(n int, f int, chann *channel.Channel, round *int, processId in
 	var res int = -3
 	// exit when a majority is found or when delivered n-f messages with the correct round and type.
 	for res == -3 && !terminator.Get() {
-		var message *channel.Message = chann.Deliver(processId)
+		//fmt.Printf("Report: %d, %d\n", processId,messageNumber,)
+		var message *channel.Message = chann.Deliver(processId, *round)
 		if message != nil &&  message.GetMessageType() == channel.REPORT {
 			//fmt.Printf("%d) received %d from: %d\n", processId, message.GetEstimate(), message.GetSender())
 			// message with different round or wrong type.
@@ -165,6 +168,6 @@ func waitMajority(n int, f int, chann *channel.Channel, round *int, processId in
 			}
 		}
 	}
-	fmt.Printf("%d) ret: %d\n", processId, res)
+	//fmt.Printf("%d) ret: %d\n", processId, res)
 	return res
 }

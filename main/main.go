@@ -6,9 +6,9 @@ import (
 )
 
 func main() {
-	var processNumber int = 3
-	var delayMean int = 2000
-	var variance int = 1000
+	var processNumber int = 5
+	var delayMean int = 000
+	var variance int = 000
 	var manager processManager.Manager = processManager.NewManager(processNumber, delayMean, variance)
 	var workers []process.WorkerFunction = make([]process.WorkerFunction, 0, processNumber)
 	for i := 0; i < processNumber; i++ {

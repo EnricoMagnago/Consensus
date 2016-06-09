@@ -27,7 +27,7 @@ func BenOr(conf *process.ProcessConfiguration, terminator *util.AtomicBool, retV
 
 	for !DECIDED && !terminator.Get() {
 		ROUND += 1
-		fmt.Printf("%d) est: %d; round: %d\n", ID, EST, ROUND);
+		fmt.Printf("\n%d) est: %d; round: %d\n", ID, EST, ROUND);
 		var message *channel.Message = channel.NewMessage(ID, -1, channel.REPORT, ROUND, EST)
 		var broadCastres bool = conf.Channel.BroadcastSend(message)
 		if !broadCastres {
@@ -49,6 +49,7 @@ func BenOr(conf *process.ProcessConfiguration, terminator *util.AtomicBool, retV
 			fmt.Errorf("ERROR BenOr in the broadcast send of proposal messages")
 		}
 		var proposalRet []int = waitProposal(N, F, conf.Channel, &ROUND, ID, maxVal, terminator) //wait a proposal with a setted estimate (!= -1), returns the value if present, -1 if not
+		//fmt.Errorf("-----------------%d)",ID)
 		var majorityEst int = proposalRet[0] // value of the found majority, -1 if not found.
 		var counter int = proposalRet[1] // number of proposal received with majorityEst value.
 
@@ -86,6 +87,16 @@ func waitProposal(n int, f int, chann *channel.Channel, round *int, processId in
 	for messageNumber < (n - f) && !terminator.Get() {
 		//fmt.Printf("Proposal: %d, %d\n", processId,messageNumber)
 		var message *channel.Message = chann.Deliver(processId, *round)
+		//fmt.Printf("\n procId: %d \n",messageNumber);
+
+		/*if message != nil &&  message.GetMessageType() != channel.PROPOSAL {
+			chann.Send(message)}*/
+		/*if message !=nil  && message.GetMessageType() != channel.PROPOSAL {
+			fmt.Printf("bbbbb")
+			chann.Send(message)
+			break }*/
+		//fmt.Printf("b");
+
 		if message != nil &&  message.GetMessageType() == channel.PROPOSAL {
 			//fmt.Printf("%d) cccc\n", processId)
 			messageNumber++
@@ -117,7 +128,9 @@ func waitProposal(n int, f int, chann *channel.Channel, round *int, processId in
 					majorityCounter++
 				}
 			} // the sender has not seen a majority	-> do nothing.
-		}
+		}/*else{
+			fmt.Printf("entrato")
+		}*/
 	}
 	//fmt.Printf("%dp) majority counter: %d; est:%d\n", processId, majorityCounter, majorityEst)
 	var res []int = make([]int, 2)

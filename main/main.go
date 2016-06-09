@@ -3,6 +3,28 @@ package main
 import (
 	"consensus/processManager"
 	"consensus/process"
+)
+
+func main() {
+	var processNumber int = 3
+	var delayMean int = 000
+	var variance int = 000
+	var manager processManager.Manager = processManager.NewManager(processNumber, delayMean, variance)
+	var workers []process.WorkerFunction = make([]process.WorkerFunction, 0, processNumber)
+	for i := 0; i < processNumber; i++ {
+		workers = append(workers, BenOr)
+	}
+	manager.AddProcesses(workers)
+	manager.StartProcesses()
+	//time.Sleep(time.Duration(5) * time.Second)
+	manager.WaitProcessesTermination()
+
+}
+/*package main
+
+import (
+	"consensus/processManager"
+	"consensus/process"
 	"fmt"
 )
 
@@ -83,7 +105,7 @@ func main() {
 		case START_ALL:
 			manager.StartProcesses()
 		case START:
-			var id int = -1
+			var id int = 1
 			for id >= processNumber && id < 0 {
 				fmt.Printf("id of the process to start [0;%d]: ", processNumber - 1)
 				readInt(&id)
@@ -110,3 +132,4 @@ func main() {
 		}
 	}
 }
+*/

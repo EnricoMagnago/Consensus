@@ -57,10 +57,12 @@ func (manager *Manager) StopProcesses() bool {
 	return true
 }
 
-func (manager *Manager) WaitProcessesTermination() {
+func (manager *Manager) WaitProcessesTermination() []*util.RetVal {
+	var res []util.RetVal = make([]util.RetVal, 0)
 	for i := 0; i < len(manager.processes); i++ {
-		manager.GetRetval(i)
+		res = append(res, manager.GetRetval(i))
 	}
+	return res
 }
 
 func (manager *Manager) GetRetval(processId int) *util.RetVal {

@@ -27,7 +27,7 @@ func BenOr(conf *process.ProcessConfiguration, terminator *util.AtomicBool, retV
 
 	for !DECIDED && !terminator.Get() {
 		ROUND += 1
-		fmt.Printf("%d) est: %d; round: %d\n", ID, EST, ROUND);
+		//fmt.Printf("%d) est: %d; round: %d\n", ID, EST, ROUND);
 		var message *channel.Message = channel.NewMessage(ID, -1, channel.REPORT, ROUND, EST)
 		var broadCastres bool = conf.Channel.BroadcastSend(message)
 		if !broadCastres {
@@ -63,7 +63,7 @@ func BenOr(conf *process.ProcessConfiguration, terminator *util.AtomicBool, retV
 		//decide -> wait N-F proposal with the same value.
 	}
 
-	fmt.Printf("%d) decided: %d, round: %d\n", ID, EST, ROUND);
+	//fmt.Printf("%d) decided: %d, round: %d\n", ID, EST, ROUND);
 	retVal.Set(EST)
 }
 

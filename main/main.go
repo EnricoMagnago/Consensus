@@ -4,6 +4,7 @@ import (
 	"consensus/processManager"
 	"consensus/process"
 	"fmt"
+	"consensus/util"
 )
 
 type Command int
@@ -99,7 +100,11 @@ func main() {
 			}
 			manager.StopProcess(id)
 		case WAIT_ALL:
-			manager.WaitProcessesTermination()
+			var retVals []*util.RetVal = manager.WaitProcessesTermination()
+			for i := 0; i < len(retVals); i++ {
+				fmt.Printf("process %d returned: %d\n", i, retVals[i].Get());
+			}
+
 		case WAIT:
 			var id int = -1
 			for id >= processNumber && id < 0 {

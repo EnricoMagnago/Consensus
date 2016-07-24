@@ -3,6 +3,7 @@ package process
 import (
 	"consensus/util"
 	"consensus/channel"
+	"fmt"
 )
 
 // interface for the function executed by threads, must periodically check if AtomicBool is setted, if it's the case the thread must terminate.
@@ -54,6 +55,7 @@ func (process *Process)startFunction() {
 	process.function(process.configuration, process.terminator, process.retVal)
 	process.retVal.Unlock()
 	process.state.Set(util.STOP)
+	fmt.Printf("\tprocess %d finished\n", process.configuration.ProcessId)
 	process.endChannel <- true// scrivi su channel che hai finito.
 
 }

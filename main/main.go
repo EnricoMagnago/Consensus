@@ -18,6 +18,7 @@ const (
 	WAIT_ALL
 	WAIT
 	ERROR
+	LOG
 )
 
 func readCommand() Command {
@@ -34,6 +35,7 @@ func readCommand() Command {
 		case "stop": return STOP
 		case "waitA": return WAIT_ALL
 		case "wait": return WAIT
+		case "log" : return LOG
 		default:
 			fmt.Print("invalid command\n> ")
 			done = false
@@ -83,6 +85,7 @@ func main() {
 			manager.StopProcesses()
 		case START_ALL:
 			manager.StartProcesses()
+			fmt.Printf("All processes started.\n");
 		case START:
 			var id int = -1
 			for id >= processNumber && id < 0 {
@@ -92,6 +95,7 @@ func main() {
 			manager.StartProcess(id)
 		case STOP_ALL:
 			manager.StopProcesses()
+			fmt.Printf("All processes stopped.\n");
 		case STOP:
 			var id int = -1
 			for id >= processNumber && id < 0 {
@@ -112,6 +116,8 @@ func main() {
 				readInt(&id)
 			}
 			manager.GetRetval(id)
+		case LOG:
+			manager.LogState()
 		}
 	}
 }

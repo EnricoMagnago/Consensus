@@ -4,6 +4,7 @@ import (
 	"consensus/process"
 	"consensus/channel"
 	"consensus/util"
+	"fmt"
 )
 
 //---------------MANAGER--------------
@@ -58,8 +59,9 @@ func (manager *Manager) StopProcesses() bool {
 }
 
 func (manager *Manager) WaitProcessesTermination() []*util.RetVal {
-	var res []util.RetVal = make([]util.RetVal, 0)
+	var res []*util.RetVal = make([]*util.RetVal, 0)
 	for i := 0; i < len(manager.processes); i++ {
+		fmt.Printf("Waiting for %d...\n", i);
 		res = append(res, manager.GetRetval(i))
 	}
 	return res
@@ -71,4 +73,9 @@ func (manager *Manager) GetRetval(processId int) *util.RetVal {
 
 func (manager *Manager) GetProcessesNumber() int {
 	return len(manager.processes)
+}
+
+func (manager *Manager) LogState(){
+	fmt.Print("Channel State:\n")
+	manager.channel.PrintState()
 }

@@ -33,7 +33,9 @@ func BenOr(conf *process.ProcessConfiguration, terminator *util.AtomicBool, retV
 		if !broadCastres {
 			fmt.Errorf("ERROR BenOr in the broadcast send of report messages")
 		}
+		fmt.Printf("%d - waiting Majority\n", ID)
 		var majority = waitMajority(N, F, conf.Channel, &ROUND, ID, maxVal, terminator)
+		fmt.Printf("%d) found Majority\n", ID)
 		switch(majority){
 		case -1:
 		//fmt.Printf("%d) no majority\n", ID)
@@ -48,7 +50,9 @@ func BenOr(conf *process.ProcessConfiguration, terminator *util.AtomicBool, retV
 		if !broadCastres {
 			fmt.Errorf("ERROR BenOr in the broadcast send of proposal messages")
 		}
+		fmt.Printf("%d - waiting Proposal\n", ID)
 		var proposalRet []int = waitProposal(N, F, conf.Channel, &ROUND, ID, maxVal, terminator) //wait a proposal with a setted estimate (!= -1), returns the value if present, -1 if not
+		fmt.Printf("%d) found Proposal\n", ID)
 		var majorityEst int = proposalRet[0] // value of the found majority, -1 if not found.
 		var counter int = proposalRet[1] // number of proposal received with majorityEst value.
 
@@ -87,7 +91,7 @@ func waitProposal(n int, f int, chann *channel.Channel, round *int, processId in
 		var message *channel.Message = chann.Deliver(processId)
 		if message != nil &&  message.GetMessageType() == channel.PROPOSAL {
 			messageNumber++
-			//fmt.Printf("%dp) received %d from: %d\n", processId, message.GetEstimate(), message.GetSender())
+			fmt.Printf("%d) proposal received %d from: %d\n", processId, message.GetEstimate(), message.GetSender())
 
 			// message with different round or wrong type.
 			if message.GetRound() != *round {
@@ -145,7 +149,7 @@ func waitMajority(n int, f int, chann *channel.Channel, round *int, processId in
 	for res == -3 && !terminator.Get() {
 		var message *channel.Message = chann.Deliver(processId)
 		if message != nil &&  message.GetMessageType() == channel.REPORT {
-			//fmt.Printf("%d) received %d from: %d\n", processId, message.GetEstimate(), message.GetSender())
+			fmt.Printf("%d) received %d from: %d\n", processId, message.GetEstimate(), message.GetSender())
 			// message with different round or wrong type.
 			if message.GetRound() != *round {
 				if message.GetRound() > *round {

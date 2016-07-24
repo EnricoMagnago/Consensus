@@ -68,12 +68,16 @@ func NewMessagesQueue() *MessagesQueue {
 	return &MessagesQueue{make([]*MessageDeliveryTime, 0), sync.Mutex{}}
 }
 
-func (messageQueue *MessagesQueue) IsEmpty() bool {
-	var res bool
+func (messageQueue *MessagesQueue) size() int {
+	var res int = 0
 	messageQueue.mutex.Lock()
-	res = (len(messageQueue.queue) == 0)
+	res = len(messageQueue.queue)
 	messageQueue.mutex.Unlock()
 	return res
+}
+
+func (messageQueue *MessagesQueue) IsEmpty() bool {
+	return messageQueue.size() == 0
 }
 
 func (messageQueue *MessagesQueue) Add(message *MessageDeliveryTime) {
@@ -100,19 +104,21 @@ func (messageQueue *MessagesQueue) Pop() *Message {
 //---------------CHANNEL--------------
 
 type Channel struct {
-	processesNumber int
-	capacity        int
-	gochannel       chan Message
-	messagesBuffer  []MessagesQueue
-	mean            int64
-	variance        int64
+	processesNumber      int
+	capacity             int
+	gochannel            chan Message
+	messagesBuffer       []MessagesQueue
+	mean                 int64
+	variance             int64
+	sendMessagesCount    int
+	deliverMessagesCount int
 }
 
 func NewChannel(processNumber int, mean int, variance int) *Channel {
 	rand.Seed(int64(time.Now().Nanosecond()))
 	var channelCapacity int = processNumber * processNumber
 
-	var channel Channel = Channel{processNumber, channelCapacity, make(chan Message, channelCapacity), make([]MessagesQueue, processNumber), int64(mean), int64(variance)}
+	var channel Channel = Channel{processNumber, channelCapacity, make(chan Message, channelCapacity), make([]MessagesQueue, processNumber), int64(mean), int64(variance), 0, 0}
 	for i := 0; i < processNumber; i++ {
 		channel.messagesBuffer[i] = *NewMessagesQueue()
 	}
@@ -159,7 +165,9 @@ func (channel *Channel) Send(message *Message) bool {
 		return false
 	}
 	if message.GetSender() > -1 && message.GetSender() < channel.processesNumber &&  message.GetReceiver() > -1 && message.GetReceiver() < channel.processesNumber {
+		//fmt.Printf("%d sending to %d\n", message.GetSender(), message.GetReceiver())
 		channel.gochannel <- *message
+		channel.sendMessagesCount++
 		return true
 	}
 	fmt.Errorf("WARNING: wrong process id, can not send message")
@@ -183,6 +191,20 @@ func (channel *Channel) Deliver(processId int) *Message {
 		channel.receive(processId)
 	}
 	var res *Message = channel.messagesBuffer[processId].Pop()
+	if res != nil {
+		channel.deliverMessagesCount++
+		//fmt.Printf("%d received from %d\n", res.GetReceiver(), res.GetSender())
+	} else {
+		//fmt.Printf("nil message to %d\n", processId)
+	}
 	return res
 }
 
+func (channel *Channel) PrintState() {
+	fmt.Printf("sended: %d; delivered: %d\nQueue sizes:", channel.sendMessagesCount, channel.deliverMessagesCount)
+	for process := 0; process < channel.processesNumber; process++ {
+		fmt.Printf("\n\tprocess %d : %d", process, channel.messagesBuffer[process].size())
+	}
+
+	fmt.Print("\n")
+}

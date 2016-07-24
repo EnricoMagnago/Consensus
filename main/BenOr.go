@@ -91,7 +91,7 @@ func waitProposal(n int, f int, chann *channel.Channel, round *int, processId in
 		var message *channel.Message = chann.Deliver(processId)
 		if message != nil &&  message.GetMessageType() == channel.PROPOSAL {
 			messageNumber++
-			fmt.Printf("%d) proposal received %d from: %d\n", processId, message.GetEstimate(), message.GetSender())
+			fmt.Printf("%d) (wProposal) received %d from: %d\n", processId, message.GetEstimate(), message.GetSender())
 
 			// message with different round or wrong type.
 			if message.GetRound() != *round {
@@ -149,7 +149,7 @@ func waitMajority(n int, f int, chann *channel.Channel, round *int, processId in
 	for res == -3 && !terminator.Get() {
 		var message *channel.Message = chann.Deliver(processId)
 		if message != nil &&  message.GetMessageType() == channel.REPORT {
-			fmt.Printf("%d) received %d from: %d\n", processId, message.GetEstimate(), message.GetSender())
+			fmt.Printf("%d) (wMajority) received %d from: %d\n", processId, message.GetEstimate(), message.GetSender())
 			// message with different round or wrong type.
 			if message.GetRound() != *round {
 				if message.GetRound() > *round {

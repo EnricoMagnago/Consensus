@@ -33,9 +33,9 @@ func BenOr(conf *process.ProcessConfiguration, terminator *util.AtomicBool, retV
 		if !broadCasted {
 			fmt.Errorf("ERROR BenOr in the broadcast send of report messages")
 		}
-		fmt.Printf("%d - waiting Majority\n", ID)
+		//fmt.Printf("%d - waiting Majority\n", ID)
 		var majority = waitMajority(N, F, conf.Channel, &ROUND, ID, maxVal, terminator)
-		fmt.Printf("%d) found Majority\n", ID)
+		//fmt.Printf("%d) found Majority\n", ID)
 		switch(majority){
 		case -1:
 		//fmt.Printf("%d) no majority\n", ID)
@@ -50,9 +50,9 @@ func BenOr(conf *process.ProcessConfiguration, terminator *util.AtomicBool, retV
 		if !broadCasted {
 			fmt.Errorf("ERROR BenOr in the broadcast send of proposal messages")
 		}
-		fmt.Printf("%d - waiting Proposal\n", ID)
+		//fmt.Printf("%d - waiting Proposal\n", ID)
 		var proposalRet []int = waitProposal(N, F, conf.Channel, &ROUND, ID, maxVal, terminator) //wait a proposal with a setted estimate (!= -1), returns the value if present, -1 if not
-		fmt.Printf("%d) found Proposal\n", ID)
+		//fmt.Printf("%d) found Proposal\n", ID)
 		var majorityEst int = proposalRet[0] // value of the found majority, -1 if not found.
 		var counter int = proposalRet[1] // number of proposal received with majorityEst value.
 
@@ -89,36 +89,47 @@ func waitProposal(n int, f int, chann *channel.Channel, round *int, processId in
 	// exit when a majority is found or when delivered n-f messages with the correct round and type.
 	for messageNumber < (n - f) && !terminator.Get() {
 		var message *channel.Message = chann.Deliver(processId)
-		if message != nil &&  message.GetMessageType() == channel.PROPOSAL {
-			messageNumber++
-			fmt.Printf("%d) (wProposal) received %d from: %d\n", processId, message.GetEstimate(), message.GetSender())
+		if message != nil {
+			switch message.GetMessageType(){
+			case channel.PROPOSAL:
+				messageNumber++
+				//fmt.Printf("%d) (wProposal) received %d from: %d\n", processId, message.GetEstimate(), message.GetSender())
 
-			// message with different round or wrong type.
-			if message.GetRound() != *round {
-				if message.GetRound() > *round {
-					fmt.Printf("%dp) round update\n", processId)
-					*round = message.GetRound() // round update
-					// restart the count of the messages (new round) and keep going.
-				}
-			}
-
-			// the sender has seen a majority.
-			if message.GetEstimate() != -1 {
-				// first estimate != -1 seen by the current process.
-				if majorityEst == -1 {
-					majorityEst = message.GetEstimate() // set the value of the majority
-					majorityCounter = 1 // start counting.
-				} else {
-					// there can not be 2 majorities.
-					if majorityEst != message.GetEstimate() {
-						fmt.Errorf("%dp) received 2 different estimate in proposal\n", processId)
-						var res []int = make([]int, 2)
-						res[0] = -1
-						res[1] = -1
+				// message with different round or wrong type.
+				if message.GetRound() != *round {
+					if message.GetRound() > *round {
+						fmt.Printf("%dp) round update\n", processId)
+						*round = message.GetRound() // round update
+						// restart the count of the messages (new round) and keep going.
 					}
-					majorityCounter++
 				}
-			} // the sender has not seen a majority	-> do nothing.
+
+				// the sender has seen a majority.
+				if message.GetEstimate() != -1 {
+					// first estimate != -1 seen by the current process.
+					if majorityEst == -1 {
+						majorityEst = message.GetEstimate() // set the value of the majority
+						majorityCounter = 1 // start counting.
+					} else {
+						// there can not be 2 majorities.
+						if majorityEst != message.GetEstimate() {
+							fmt.Errorf("%dp) received 2 different estimate in proposal\n", processId)
+							var res []int = make([]int, 2)
+							res[0] = -1
+							res[1] = -1
+						}
+						majorityCounter++
+					}
+				} // the sender has not seen a majority	-> do nothing.
+				break
+			case channel.REPORT:
+				if message.GetRound() > *round {
+					chann.Send(message)
+				}
+				break
+			default:
+				fmt.Errorf("Unknown message type\n")
+			}
 		}
 	}
 	//fmt.Printf("%dp) majority counter: %d; est:%d\n", processId, majorityCounter, majorityEst)
@@ -148,30 +159,41 @@ func waitMajority(n int, f int, chann *channel.Channel, round *int, processId in
 	// exit when a majority is found or when delivered n-f messages with the correct round and type.
 	for res == -3 && !terminator.Get() {
 		var message *channel.Message = chann.Deliver(processId)
-		if message != nil &&  message.GetMessageType() == channel.REPORT {
-			fmt.Printf("%d) (wMajority) received %d from: %d\n", processId, message.GetEstimate(), message.GetSender())
-			// message with different round or wrong type.
-			if message.GetRound() != *round {
-				if message.GetRound() > *round {
-					fmt.Printf("%d) round update\n", processId)
-					*round = message.GetRound() // round update
-					// restart the count of the messages (new round) and keep going.
-					for i := 0; i < maxVal; i++ {
-						counters[i] = 0
+		if message != nil {
+			switch message.GetMessageType(){
+			case channel.REPORT:
+				//fmt.Printf("%d) (wMajority) received %d from: %d\n", processId, message.GetEstimate(), message.GetSender())
+				// message with different round or wrong type.
+				if message.GetRound() != *round {
+					if message.GetRound() > *round {
+						fmt.Printf("%d) round update\n", processId)
+						*round = message.GetRound() // round update
+						// restart the count of the messages (new round) and keep going.
+						for i := 0; i < maxVal; i++ {
+							counters[i] = 0
+						}
 					}
 				}
-			}
-			var est int = message.GetEstimate()
-			counters[est]++
-			// majority found
-			if counters[est] >= (n + 1) / 2 {
-				res = est
-			} else {
-				messageNumber++
-				// n-f messages, still no majority.
-				if messageNumber >= n - f {
-					res = -1
+				var est int = message.GetEstimate()
+				counters[est]++
+				// majority found
+				if counters[est] >= (n + 1) / 2 {
+					res = est
+				} else {
+					messageNumber++
+					// n-f messages, still no majority.
+					if messageNumber >= n - f {
+						res = -1
+					}
 				}
+				break
+			case channel.PROPOSAL:
+				if message.GetRound() >= *round {
+					chann.Send(message) // re-enqueue
+				}
+				break
+			default:
+				fmt.Errorf("Unknown message type\n")
 			}
 		}
 	}

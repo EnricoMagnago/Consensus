@@ -29,8 +29,8 @@ func BenOr(conf *process.ProcessConfiguration, terminator *util.AtomicBool, retV
 		ROUND += 1
 		//fmt.Printf("%d) est: %d; round: %d\n", ID, EST, ROUND);
 		var message *channel.Message = channel.NewMessage(ID, -1, channel.REPORT, ROUND, EST)
-		var broadCastres bool = conf.Channel.BroadcastSend(message)
-		if !broadCastres {
+		var broadCasted bool = conf.Channel.BroadcastSend(message)
+		if !broadCasted {
 			fmt.Errorf("ERROR BenOr in the broadcast send of report messages")
 		}
 		fmt.Printf("%d - waiting Majority\n", ID)
@@ -46,8 +46,8 @@ func BenOr(conf *process.ProcessConfiguration, terminator *util.AtomicBool, retV
 		//majority can be -1 -> no majority.
 
 		var msgProp *channel.Message = channel.NewMessage(ID, -1, channel.PROPOSAL, ROUND, majority)
-		broadCastres = conf.Channel.BroadcastSend(msgProp) // can be -1
-		if !broadCastres {
+		broadCasted = conf.Channel.BroadcastSend(msgProp) // can be -1
+		if !broadCasted {
 			fmt.Errorf("ERROR BenOr in the broadcast send of proposal messages")
 		}
 		fmt.Printf("%d - waiting Proposal\n", ID)

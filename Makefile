@@ -1,5 +1,5 @@
 PACKAGES = util channel process processManager main
-GOPATH := /home/enrico/Projects/GoProjects
+GOPATH := /home/roberto/DISCO/GO
 export GOPATH
 
 .PHONY: build

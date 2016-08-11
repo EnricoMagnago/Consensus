@@ -15,10 +15,12 @@ type ProcessConfiguration struct {
 	Channel         *channel.Channel
 	ProcessId       int // process ID
 	ProcessesNumber int // number of processes in the system.
+	F int // number of crashable processes.
+	MaxVal int // maximum decidable number + 1
 }
 
-func NewProcessConfiguration(channel *channel.Channel, processId int, processNumber int) *ProcessConfiguration {
-	return &ProcessConfiguration{channel, processId, processNumber}
+func NewProcessConfiguration(channel *channel.Channel, processId int, processNumber int, F int, MaxVal int) *ProcessConfiguration {
+	return &ProcessConfiguration{channel, processId, processNumber, F, MaxVal}
 }
 
 // ----------------PROCESS--------------

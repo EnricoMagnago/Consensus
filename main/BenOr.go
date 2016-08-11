@@ -15,8 +15,8 @@ func newRandEstimate(maxVal int) int {
 
 func BenOr(conf *process.ProcessConfiguration, terminator *util.AtomicBool, retVal *util.RetVal) {
 	rand.Seed(int64(time.Now().Nanosecond()))
-	const maxVal int = 10 //from 0 to maxVal-1
-	const F int = 0
+	var maxVal int = conf.MaxVal //from 0 to maxVal-1
+	var F int = conf.F
 
 	// process state init
 	var ID int = conf.ProcessId
@@ -37,32 +37,40 @@ func BenOr(conf *process.ProcessConfiguration, terminator *util.AtomicBool, retV
 		var majority = waitMajority(N, F, conf.Channel, &ROUND, ID, maxVal, terminator)
 		//fmt.Printf("%d) found Majority\n", ID)
 		switch(majority){
-		case -1:
-		//fmt.Printf("%d) no majority\n", ID)
-		default:
-		//fmt.Printf("%d) majority found on %d\n", ID, majority)
-		}
-		//DECIDED = true
-		//majority can be -1 -> no majority.
-
-		var msgProp *channel.Message = channel.NewMessage(ID, -1, channel.PROPOSAL, ROUND, majority)
-		broadCasted = conf.Channel.BroadcastSend(msgProp) // can be -1
-		if !broadCasted {
-			fmt.Errorf("ERROR BenOr in the broadcast send of proposal messages")
-		}
-		//fmt.Printf("%d - waiting Proposal\n", ID)
-		var proposalRet []int = waitProposal(N, F, conf.Channel, &ROUND, ID, maxVal, terminator) //wait a proposal with a setted estimate (!= -1), returns the value if present, -1 if not
-		//fmt.Printf("%d) found Proposal\n", ID)
-		var majorityEst int = proposalRet[0] // value of the found majority, -1 if not found.
-		var counter int = proposalRet[1] // number of proposal received with majorityEst value.
-
-		if majorityEst != -1 {
-			EST = majorityEst
-		} else {
-			EST = newRandEstimate(maxVal)
-		}
-		if counter > F {
+		case -3:
+		// terminated by request, exit with -2
+			EST = -2
 			DECIDED = true
+		default:
+			// -1: majority not found else majority found
+
+			//DECIDED = true
+			//majority can be -1 -> no majority.
+
+			var msgProp *channel.Message = channel.NewMessage(ID, -1, channel.PROPOSAL, ROUND, majority)
+			broadCasted = conf.Channel.BroadcastSend(msgProp) // can be -1
+			if !broadCasted {
+				fmt.Errorf("ERROR BenOr in the broadcast send of proposal messages")
+			}
+			//fmt.Printf("%d - waiting Proposal\n", ID)
+			var proposalRet []int = waitProposal(N, F, conf.Channel, &ROUND, ID, maxVal, terminator) //wait a proposal with a setted estimate (!= -1), returns the value if present, -1 if not
+			//fmt.Printf("%d) found Proposal\n", ID)
+			var majorityEst int = proposalRet[0] // value of the found majority, -1 if not found.
+			var counter int = proposalRet[1] // number of proposal received with majorityEst value.
+			if terminator.Get() {
+				// terminated by request, exit with -2
+				EST = -2
+				DECIDED = true
+			} else {
+				if majorityEst != -1 {
+					EST = majorityEst
+				} else {
+					EST = newRandEstimate(maxVal)
+				}
+				if counter > F {
+					DECIDED = true
+				}
+			}
 		}
 		//decide -> wait N-F proposal with the same value.
 	}
@@ -121,12 +129,12 @@ func waitProposal(n int, f int, chann *channel.Channel, round *int, processId in
 						majorityCounter++
 					}
 				} // the sender has not seen a majority	-> do nothing.
-				break
+				//break
 			case channel.REPORT:
 				if message.GetRound() > *round {
 					chann.Send(message)
 				}
-				break
+				//break
 			default:
 				fmt.Errorf("Unknown message type\n")
 			}
@@ -186,12 +194,12 @@ func waitMajority(n int, f int, chann *channel.Channel, round *int, processId in
 						res = -1
 					}
 				}
-				break
+				//break
 			case channel.PROPOSAL:
 				if message.GetRound() >= *round {
 					chann.Send(message) // re-enqueue
 				}
-				break
+				//break
 			default:
 				fmt.Errorf("Unknown message type\n")
 			}

@@ -13,10 +13,12 @@ type Manager struct {
 	processes     []*process.Process // change data structure.
 	channel       *channel.Channel
 	processNumber int
+	f int
+	maxVal int
 }
 
-func NewManager(processNumber int, mean int, variance int) Manager {
-	return Manager{make([]*process.Process, 0, processNumber), channel.NewChannel(processNumber, mean, variance), processNumber}
+func NewManager(processNumber int, mean int, variance int, f int, maxVal int) Manager {
+	return Manager{make([]*process.Process, 0, processNumber), channel.NewChannel(processNumber, mean, variance), processNumber, f, maxVal}
 }
 
 func (manager *Manager) addProcess(worker process.WorkerFunction, conf *process.ProcessConfiguration) int {
@@ -27,7 +29,7 @@ func (manager *Manager) addProcess(worker process.WorkerFunction, conf *process.
 
 func (manager *Manager) AddProcesses(workers []process.WorkerFunction) {
 	for i := 0; i < manager.processNumber; i++ {
-		var conf *process.ProcessConfiguration = process.NewProcessConfiguration(manager.channel, i, manager.processNumber)
+		var conf *process.ProcessConfiguration = process.NewProcessConfiguration(manager.channel, i, manager.processNumber, manager.f, manager.maxVal)
 		manager.addProcess(workers[i], conf)
 	}
 }

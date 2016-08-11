@@ -57,18 +57,27 @@ func main() {
 	var processNumber int = 3
 	var delayMean int = 2000
 	var variance int = 1000
+	var F int = 0
+	var MaxVal int = 2
 
 	fmt.Println("\tBen-Or protocol simulator\n\t\tby: Roberto Fellin, Enrico Magnago\n\n")
 
 	fmt.Print("GLOBAL SETTINGS:\n\t- processes number: ")
 	readInt(&processNumber)
 
+	fmt.Print("\n\t- number of crashable processes: ")
+	readInt(&F)
+	fmt.Print("\n\t- number of decideable values: ")
+	readInt(&MaxVal)
+
 	fmt.Print("\n\t- channel mean delay: ")
 	readInt(&delayMean)
 	fmt.Print("\n\t- channel delay variance: ")
 	readInt(&variance)
 
-	var manager processManager.Manager = processManager.NewManager(processNumber, delayMean, variance)
+
+
+	var manager processManager.Manager = processManager.NewManager(processNumber, delayMean, variance, F, MaxVal)
 	var workers []process.WorkerFunction = make([]process.WorkerFunction, 0, processNumber)
 	for i := 0; i < processNumber; i++ {
 		workers = append(workers, BenOr)
@@ -98,7 +107,7 @@ func main() {
 			fmt.Printf("All processes stopped.\n");
 		case STOP:
 			var id int = -1
-			for id >= processNumber && id < 0 {
+			for id >= processNumber || id < 0 {
 				fmt.Printf("id of the process to stop [0;%d]: ", processNumber - 1)
 				readInt(&id)
 			}
@@ -111,7 +120,7 @@ func main() {
 
 		case WAIT:
 			var id int = -1
-			for id >= processNumber && id < 0 {
+			for id >= processNumber || id < 0 {
 				fmt.Printf("id of the process to wait [0;%d]: ", processNumber - 1)
 				readInt(&id)
 			}

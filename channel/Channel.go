@@ -95,7 +95,7 @@ func (messageQueue *MessagesQueue) Pop() *Message {
 		message = messageQueue.queue[0].message
 		messageQueue.queue = messageQueue.queue[1:] // remove from the queue.
 	} else {
-		fmt.Println("sorry you have to wait")
+		//fmt.Println("sorry you have to wait")
 	}
 	messageQueue.mutex.Unlock()
 	return message

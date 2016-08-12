@@ -213,8 +213,16 @@ func (channel *Channel) Deliver(processId int) *Message {
 	return res
 }
 
+func (channel *Channel) GetSendedMessagesNumber() int {
+	return channel.sendMessagesCount
+}
+
+func (channel *Channel) GetDeliveredMessagesNumber() int {
+	return channel.deliverMessagesCount
+}
+
 func (channel *Channel) PrintState() {
-	fmt.Printf("last client %d\nsended: %d; delivered: %d; nilReplys: %d\nQueue sizes:", channel.lastClient, channel.sendMessagesCount, channel.deliverMessagesCount, channel.nilMessagesCount)
+	fmt.Printf("last client %d\nsended: %d; delivered: %d; nilReplys: %d\nQueue sizes:", channel.lastClient, channel.GetSendedMessagesNumber(), channel.GetDeliveredMessagesNumber(), channel.nilMessagesCount)
 	for process := 0; process < channel.processesNumber; process++ {
 		fmt.Printf("\n\tprocess %d : %d", process, channel.messagesBuffer[process].size())
 	}

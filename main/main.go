@@ -5,128 +5,91 @@ import (
 	"consensus/process"
 	"fmt"
 	"consensus/util"
+	"time"
+	"os"
+	"strconv"
 )
 
-type Command int
-
-const (
-	QUIT Command = iota
-	START_ALL
-	START
-	STOP_ALL
-	STOP
-	WAIT_ALL
-	WAIT
-	ERROR
-	LOG
-)
-
-func readCommand() Command {
-	var tmp string = ""
-	var done = false
-	for !done {
-		done = true
-		fmt.Scanf("%s", &tmp)
-		switch(tmp){
-		case "quit": return QUIT
-		case "startA": return START_ALL
-		case "start": return START
-		case "stopA": return STOP_ALL
-		case "stop": return STOP
-		case "waitA": return WAIT_ALL
-		case "wait": return WAIT
-		case "log" : return LOG
-		default:
-			fmt.Print("invalid command\n> ")
-			done = false
-		}
+func check(e error) {
+	if e != nil {
+		panic(e)
 	}
-	return ERROR
 }
 
-func readInt(n *int) {
-	var tmp int = 0
-	tmp, _ = fmt.Scanf("%d", n)
-	for tmp == 0 {
-		fmt.Print("\n\tplease insert an integer: ")
-		tmp, _ = fmt.Scanf("%d", n)
+
+/*
+ process number [2,15] N
+ crashable processes [0, (N-1)/2] F
+ range [2,15]
+ mean delay  {0, 25, 50, 75, 100}
+ delay variance {0, 10, 20}
+ */
+
+func min(n0 int, n1 int) int {
+	var res int = n0
+	if n1 < n0 {
+		res = n1
 	}
+	return res
 }
 
 func main() {
-	var processNumber int = 3
-	var delayMean int = 2000
-	var variance int = 1000
-	var F int = 0
-	var MaxVal int = 2
+	const MaxProcessesNumber int = 4
+	const MaxCrashableProcesses int = (MaxProcessesNumber - 1) / 2
+	const MaxRangeValue int = 10
 
-	fmt.Println("\tBen-Or protocol simulator\n\t\tby: Roberto Fellin, Enrico Magnago\n\n")
+	const MaxMeanDelay int = 100
+	const DelayStep int = 25
 
-	fmt.Print("GLOBAL SETTINGS:\n\t- processes number: ")
-	readInt(&processNumber)
+	const MaxVariance int = 20
+	const VarianceStep int = 10
+	fmt.Println("processNumber\tcrashableProcesses\tmaxRangeVal\tdelayMean\tvariance")
 
-	fmt.Print("\n\t- number of crashable processes: ")
-	readInt(&F)
-	fmt.Print("\n\t- number of decideable values: ")
-	readInt(&MaxVal)
+	for processNumber := 2; processNumber <= MaxProcessesNumber; processNumber++ {
+		for crashableProcesses := 0; crashableProcesses <= min((processNumber - 1) / 2, MaxCrashableProcesses); crashableProcesses++ {
+			for maxRangeVal := 2; maxRangeVal <= MaxRangeValue; maxRangeVal++ {
+				for delayMean := 0; delayMean <= MaxMeanDelay; delayMean += DelayStep {
+					for variance := 0; variance <= MaxVariance; variance += VarianceStep {
+						fmt.Printf("\n%d\t%d\t%d\t%d\t%d", processNumber, crashableProcesses, maxRangeVal, delayMean, variance)
 
-	fmt.Print("\n\t- channel mean delay: ")
-	readInt(&delayMean)
-	fmt.Print("\n\t- channel delay variance: ")
-	readInt(&variance)
+						// init model.
+						var manager processManager.Manager = processManager.NewManager(processNumber, delayMean, variance, crashableProcesses, maxRangeVal)
+						var workers []process.WorkerFunction = make([]process.WorkerFunction, 0, processNumber)
+						for i := 0; i < processNumber; i++ {
+							workers = append(workers, BenOr)
+						}
+						manager.AddProcesses(workers)
+						startTime := time.Now()
+						manager.StartProcesses()
 
+						// stop the processes
+						for processId := 0; processId < crashableProcesses; processId++ {
+							manager.StopProcess(processId)
+						}
+						var retVals []*util.RetVal = manager.WaitProcessesTermination()
+						deltaTime := time.Now().Unix() - startTime.Unix()
 
+						// check for errors in the execution.
+						var decidedValue int = retVals[crashableProcesses].Get()
+						for i := crashableProcesses + 1; i < len(retVals); i++ {
+							if decidedValue != retVals[i].Get() {
+								//fmt.Errorf("%d\t%d\t%d\t%d\t%d\n\tI valori di ritorno non sono consistenti: ", processNumber, crashableProcesses, maxRangeVal, delayMean, variance)
+								fmt.Errorf("\n\tI valori di ritorno non sono consistenti: ", processNumber, crashableProcesses, maxRangeVal, delayMean, variance)
+								for i := 0; i < len(retVals); i++ {
+									fmt.Errorf("%d, ", retVals[i].Get())
+								}
+								fmt.Println()
+							}
+						}
 
-	var manager processManager.Manager = processManager.NewManager(processNumber, delayMean, variance, F, MaxVal)
-	var workers []process.WorkerFunction = make([]process.WorkerFunction, 0, processNumber)
-	for i := 0; i < processNumber; i++ {
-		workers = append(workers, BenOr)
-	}
-	manager.AddProcesses(workers)
-
-	var command Command = ERROR
-	for command != QUIT {
-		fmt.Print("> ")
-		command = readCommand()
-		fmt.Println()
-		switch(command){
-		case QUIT:
-			manager.StopProcesses()
-		case START_ALL:
-			manager.StartProcesses()
-			fmt.Printf("All processes started.\n");
-		case START:
-			var id int = -1
-			for id >= processNumber && id < 0 {
-				fmt.Printf("id of the process to start [0;%d]: ", processNumber - 1)
-				readInt(&id)
+						// log result.
+						file, err := os.Create("../data/" + strconv.Itoa(processNumber) + "_" + strconv.Itoa(crashableProcesses) + "_" + strconv.Itoa(maxRangeVal) + "_" + strconv.Itoa(delayMean) + "_" + strconv.Itoa(variance) + ".csv")
+						check(err)
+						defer file.Close()
+						file.WriteString(strconv.FormatInt(deltaTime, 10) + "," + strconv.Itoa(manager.GetSendedMessageNumber()) + "," + strconv.Itoa(manager.GetDeliveredMessageNumber()) + "," + strconv.Itoa(decidedValue) + "\n")
+					}
+				}
 			}
-			manager.StartProcess(id)
-		case STOP_ALL:
-			manager.StopProcesses()
-			fmt.Printf("All processes stopped.\n");
-		case STOP:
-			var id int = -1
-			for id >= processNumber || id < 0 {
-				fmt.Printf("id of the process to stop [0;%d]: ", processNumber - 1)
-				readInt(&id)
-			}
-			manager.StopProcess(id)
-		case WAIT_ALL:
-			var retVals []*util.RetVal = manager.WaitProcessesTermination()
-			for i := 0; i < len(retVals); i++ {
-				fmt.Printf("process %d returned: %d\n", i, retVals[i].Get());
-			}
-
-		case WAIT:
-			var id int = -1
-			for id >= processNumber || id < 0 {
-				fmt.Printf("id of the process to wait [0;%d]: ", processNumber - 1)
-				readInt(&id)
-			}
-			manager.GetRetval(id)
-		case LOG:
-			manager.LogState()
 		}
 	}
 }

@@ -13,8 +13,8 @@ type Manager struct {
 	processes     []*process.Process // change data structure.
 	channel       *channel.Channel
 	processNumber int
-	f int
-	maxVal int
+	f             int
+	maxVal        int
 }
 
 func NewManager(processNumber int, mean int, variance int, f int, maxVal int) Manager {
@@ -63,7 +63,7 @@ func (manager *Manager) StopProcesses() bool {
 func (manager *Manager) WaitProcessesTermination() []*util.RetVal {
 	var res []*util.RetVal = make([]*util.RetVal, 0)
 	for i := 0; i < len(manager.processes); i++ {
-		fmt.Printf("Waiting for %d...\n", i);
+		//fmt.Printf("Waiting for %d...\n", i);
 		res = append(res, manager.GetRetval(i))
 	}
 	return res
@@ -77,7 +77,15 @@ func (manager *Manager) GetProcessesNumber() int {
 	return len(manager.processes)
 }
 
-func (manager *Manager) LogState(){
+func (manager *Manager) GetSendedMessageNumber() int {
+	return manager.channel.GetSendedMessagesNumber()
+}
+
+func (manager *Manager) GetDeliveredMessageNumber() int {
+	return manager.channel.GetDeliveredMessagesNumber()
+}
+
+func (manager *Manager) LogState() {
 	fmt.Print("Channel State:\n")
 	manager.channel.PrintState()
 }

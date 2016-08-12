@@ -149,13 +149,13 @@ if id = -2, reads all the messages from the channel.
 func (channel *Channel) receive(id int) {
 	channel.lastClient = id
 	var lastId int = -1
-	channel.mutex.Lock()
+	//channel.mutex.Lock()
 	for !channel.isEmpty() && lastId != id {
 		var message Message = <-channel.gochannel
 		lastId = message.GetReceiver()
 		channel.messagesBuffer[lastId].Add(newMessageDeliveryTime(&message, channel.generateDeliveryTime()))
 	}
-	channel.mutex.Unlock()
+	//channel.mutex.Unlock()
 }
 
 func (channel *Channel) receiveAll() {
@@ -164,23 +164,26 @@ func (channel *Channel) receiveAll() {
 
 func (channel *Channel) Send(message *Message) bool {
 	channel.lastClient = message.senderId
+	channel.mutex.Lock()
 	if channel.isFull() {
 		channel.receiveAll()
 	}
 
 	if channel.isFull() {
 		fmt.Errorf("ERROR: Channel.send: can not __receive messages, channel still full.")
+		channel.mutex.Unlock()
 		return false
 	}
 
 	if message.GetSender() > -1 && message.GetSender() < channel.processesNumber &&  message.GetReceiver() > -1 && message.GetReceiver() < channel.processesNumber {
 		//fmt.Printf("%d sending to %d\n", message.GetSender(), message.GetReceiver())
-		channel.mutex.Lock()
+
 		channel.gochannel <- *message
 		channel.sendMessagesCount++
 		channel.mutex.Unlock()
 		return true
 	}
+	channel.mutex.Unlock()
 	fmt.Errorf("WARNING: wrong process id, can not send message")
 	return false
 }
@@ -200,8 +203,11 @@ func (channel *Channel) BroadcastSend(message *Message) bool {
 func (channel *Channel) Deliver(processId int) *Message {
 	channel.lastClient = processId
 	if channel.messagesBuffer[processId].IsEmpty() {
+		channel.mutex.Lock()
 		channel.receive(processId)
+		channel.mutex.Unlock()
 	}
+
 	var res *Message = channel.messagesBuffer[processId].Pop()
 	if res != nil {
 		channel.deliverMessagesCount++

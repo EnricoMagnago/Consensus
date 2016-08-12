@@ -2,6 +2,7 @@ package process
 
 import (
 	"consensus/util"
+	"consensus/channel"
 )
 
 // interface for the function executed by threads, must periodically check if AtomicBool is setted, if it's the case the thread must terminate.
@@ -10,11 +11,16 @@ type WorkerFunction func(*ProcessConfiguration, *util.AtomicBool, *util.RetVal) 
 
 // parameters to the function, should not be modified after the start (concurrency).
 type ProcessConfiguration struct {
-	name         string
-	channel      chan string
-	processesIds []int
+	Channel         *channel.Channel
+	ProcessId       int // process ID
+	ProcessesNumber int // number of processes in the system.
+	F               int // number of crashable processes.
+	MaxVal          int // maximum decidable number + 1
 }
 
+func NewProcessConfiguration(channel *channel.Channel, processId int, processNumber int, F int, MaxVal int) *ProcessConfiguration {
+	return &ProcessConfiguration{channel, processId, processNumber, F, MaxVal}
+}
 
 // ----------------PROCESS--------------
 
@@ -50,6 +56,7 @@ func (process *Process)startFunction() {
 	process.function(process.configuration, process.terminator, process.retVal)
 	process.retVal.Unlock()
 	process.state.Set(util.STOP)
+	//fmt.Printf("\tprocess %d finished\n", process.configuration.ProcessId)
 	process.endChannel <- true// scrivi su channel che hai finito.
 
 }
@@ -79,10 +86,15 @@ func (process *Process)Stop() bool {
 	return false
 }
 
-func (process *Process)WaitTermination() {
+func (process *Process)WaitTermination() *util.RetVal {
 	switch process.state.Get(){
-	case util.RUNNING: <-process.endChannel // leggi dal channel per terminazione del thread.
+	case util.RUNNING:
+		<-process.endChannel // leggi dal channel per terminazione del thread.
+		return process.retVal
 	case util.STOP:
+		return process.retVal
 	case util.ERROR:
+		return nil
 	}
+	return nil
 }

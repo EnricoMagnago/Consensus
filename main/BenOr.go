@@ -38,7 +38,7 @@ func BenOr(conf *process.ProcessConfiguration, terminator *util.AtomicBool, retV
 		//fmt.Printf("%d) found Majority\n", ID)
 		switch(majority){
 		case -3:
-		// terminated by request, exit with -2
+			// terminated by request, exit with -2
 			EST = -2
 			DECIDED = true
 		default:
@@ -109,6 +109,15 @@ func waitProposal(n int, f int, chann *channel.Channel, round *int, processId in
 						fmt.Printf("%dp) round update\n", processId)
 						*round = message.GetRound() // round update
 						// restart the count of the messages (new round) and keep going.
+						messageNumber = 0
+						majorityCounter = 0
+						majorityEst = -1
+						// send a copy of the message.
+						var message *channel.Message = channel.NewMessage(processId, -1, channel.PROPOSAL, *round, message.GetEstimate())
+						var broadCasted bool = chann.BroadcastSend(message)
+						if !broadCasted {
+							fmt.Errorf("ERROR BenOr in the broadcast send of report messages")
+						}
 					}
 				}
 
@@ -129,12 +138,12 @@ func waitProposal(n int, f int, chann *channel.Channel, round *int, processId in
 						majorityCounter++
 					}
 				} // the sender has not seen a majority	-> do nothing.
-				//break
+			//break
 			case channel.REPORT:
 				if message.GetRound() > *round {
 					chann.Send(message)
 				}
-				//break
+			//break
 			default:
 				fmt.Errorf("Unknown message type\n")
 			}
@@ -180,6 +189,13 @@ func waitMajority(n int, f int, chann *channel.Channel, round *int, processId in
 						for i := 0; i < maxVal; i++ {
 							counters[i] = 0
 						}
+						// send a copy of the message.
+						var message *channel.Message = channel.NewMessage(processId, -1, channel.REPORT, *round, message.GetEstimate())
+						var broadCasted bool = chann.BroadcastSend(message)
+						if !broadCasted {
+							fmt.Errorf("ERROR BenOr in the broadcast send of report messages")
+						}
+
 					}
 				}
 				var est int = message.GetEstimate()
@@ -194,12 +210,12 @@ func waitMajority(n int, f int, chann *channel.Channel, round *int, processId in
 						res = -1
 					}
 				}
-				//break
+			//break
 			case channel.PROPOSAL:
 				if message.GetRound() >= *round {
 					chann.Send(message) // re-enqueue
 				}
-				//break
+			//break
 			default:
 				fmt.Errorf("Unknown message type\n")
 			}

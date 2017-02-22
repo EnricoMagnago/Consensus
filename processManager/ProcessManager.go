@@ -16,7 +16,10 @@ type Manager struct {
 	f             int
 	maxVal        int
 }
-
+/**
+ * @param f : maximum number of processes that can fail.
+ * @param maxVal: maximum decidable value.
+ */
 func NewManager(processNumber int, mean int, variance int, f int, maxVal int) Manager {
 	return Manager{make([]*process.Process, 0, processNumber), channel.NewChannel(processNumber, mean, variance), processNumber, f, maxVal}
 }

@@ -83,7 +83,7 @@ func main() {
 							for i := crashableProcesses + 1; i < len(retVals); i++ {
 								if decidedValue != retVals[i].Get() {
 									//fmt.Errorf("%d\t%d\t%d\t%d\t%d\n\tI valori di ritorno non sono consistenti: ", processNumber, crashableProcesses, maxRangeVal, delayMean, variance)
-									fmt.Errorf("\n\tI valori di ritorno non sono consistenti: ", processNumber, crashableProcesses, maxRangeVal, delayMean, variance)
+									fmt.Errorf("\n\tI valori di ritorno non sono consistenti: %d %d %d %f %d", processNumber, crashableProcesses, maxRangeVal, delayMean, variance)
 									for i := 0; i < len(retVals); i++ {
 										fmt.Errorf("%d, ", retVals[i].Get())
 									}

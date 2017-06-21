@@ -1,4 +1,4 @@
-PACKAGES=util channel process processManager main
+PACKAGES=util channel process processManager benOr collect_data interactive
 
 .PHONY: environment
 environment:
@@ -10,7 +10,9 @@ build: $(PACKAGES) environment
 	cd channel; go build
 	cd process; go build
 	cd processManager; go build
-	cd main; go build
+	cd benOr ; go build
+	cd collect_data; go build
+	cd interactive; go build
 
 .PHONY: install environment
 install: $(PACKAGES)
@@ -18,11 +20,17 @@ install: $(PACKAGES)
 	cd channel; go install
 	cd process; go install
 	cd processManager; go install
-	cd main; go install
+	cd benOr ; go install
+	cd interactive; go install
+	cd collect_data; go install
 
-.PHONY: test environment
-test: $(PACKAGES) install
-	cd main; go test
+.PHONY: run_interactive environment
+run_interactive: $(PACKAGES) install
+	../../bin/interactive
+
+.PHONY: run_collect_data environment
+run_collect_data: $(PACKAGES) install
+	../../bin/collect_data
 
 .PHONY: clean
 clean: 

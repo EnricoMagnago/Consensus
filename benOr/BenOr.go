@@ -1,4 +1,4 @@
-package main
+package benOr
 
 import (
 	"consensus/process"

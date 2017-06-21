@@ -3,8 +3,9 @@ package main
 import (
 	"consensus/processManager"
 	"consensus/process"
-	"fmt"
 	"consensus/util"
+	. "consensus/benOr"
+	"fmt"
 	"time"
 	"os"
 	"strconv"

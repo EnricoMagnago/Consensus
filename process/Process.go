@@ -103,10 +103,10 @@ func (process *Process)Stop() bool {
  */
 func (process *Process)WaitTermination() *util.RetVal {
 	switch process.state.Get(){
-	case util.RUNNING:
-		<-process.endChannel // leggi dal channel per terminazione del thread.
+	case util.RUNNING: // need to wait termination.
+		<-process.endChannel // read from channel signal for thread termination.
 		return process.retVal
-	case util.STOP:
+	case util.STOP: // already finished.
 		return process.retVal
 	case util.ERROR:
 		return nil

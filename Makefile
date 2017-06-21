@@ -28,4 +28,4 @@ test: $(PACKAGES) install
 clean: 
 	rm -rf ../../pkg/*/consensus
 	rm -f ../../bin/consensus
-	
+

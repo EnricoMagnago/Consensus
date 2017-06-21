@@ -15,6 +15,7 @@ type MessageType int
 const (
 	REPORT MessageType = iota
 	PROPOSAL
+	DECIDE
 )
 
 type Message struct {

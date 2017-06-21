@@ -1,6 +1,8 @@
-PACKAGES = util channel process processManager main
-GOPATH := /home/enrico/Projects/GoProjects
-export GOPATH
+PACKAGES=util channel process processManager main
+
+.PHONY: environment
+environment:
+	export GOPATH=/usr/lib/go:$HOME/Projects/GoProjects
 
 .PHONY: build
 build: $(PACKAGES) environment
@@ -26,4 +28,4 @@ test: $(PACKAGES) install
 clean: 
 	rm -rf ../../pkg/*/consensus
 	rm -f ../../bin/consensus
-	
+

@@ -38,7 +38,14 @@ func readCommand() Command {
 		case "wait": return WAIT
 		case "log" : return LOG
 		default:
-			fmt.Print("invalid command\n> ")
+			fmt.Print("\tAvailable commands:\n" +
+				"\tquit\t: close interactive shell\n" +
+				"\tstart\t: start a single process\n" +
+				"\tstartA\t: start all processes\n" +
+				"\tstop\t: stop a single process\n" +
+				"\tstopA\t: stop all processes\n" +
+				"\twait\t: wait termination of single process\n" +
+				"\twaitA\t: wait termination of all processes\n\n>")
 			done = false
 		}
 	}

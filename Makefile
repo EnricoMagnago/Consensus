@@ -30,7 +30,7 @@ run_interactive: $(PACKAGES) install
 
 .PHONY: run_collect_data environment
 run_collect_data: $(PACKAGES) install
-	../../bin/collect_data
+	cd ../../bin/; ./collect_data
 
 .PHONY: clean
 clean: 

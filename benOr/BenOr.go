@@ -141,7 +141,7 @@ func waitProposal(n int, f int, chann *channel.Channel, round *int, processId in
 				// message with different round or wrong type.
 				if message.GetRound() != *round {
 					if message.GetRound() > *round {
-						fmt.Printf("%dp) round update\n", processId)
+						//fmt.Printf("%dp) round update\n", processId)
 						*round = message.GetRound() // round update
 						// restart the count of the messages (new round) and keep going.
 						messageNumber = 0

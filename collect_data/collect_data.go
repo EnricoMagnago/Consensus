@@ -42,10 +42,10 @@ func main() {
 	const MaxRangeValue int = 5
 
 	const MaxMeanDelay int = 0
-	const DelayStep int = 0
+	const DelayStep int = 1
 
 	const MaxVariance int = 0
-	const VarianceStep int = 0
+	const VarianceStep int = 1
 	fmt.Println("processNumber\tcrashableProcesses\tmaxRangeVal\tdelayMean\tvariance")
 
 	for processNumber := 2; processNumber <= MaxProcessesNumber; processNumber++ {
@@ -83,7 +83,6 @@ func main() {
 							var decidedValue int = retVals[crashableProcesses].Get()
 							for i := crashableProcesses + 1; i < len(retVals); i++ {
 								if decidedValue != retVals[i].Get() {
-									//fmt.Errorf("%d\t%d\t%d\t%d\t%d\n\tI valori di ritorno non sono consistenti: ", processNumber, crashableProcesses, maxRangeVal, delayMean, variance)
 									fmt.Errorf("\n\tI valori di ritorno non sono consistenti: %d %d %d %f %d", processNumber, crashableProcesses, maxRangeVal, delayMean, variance)
 									for i := 0; i < len(retVals); i++ {
 										fmt.Errorf("%d, ", retVals[i].Get())

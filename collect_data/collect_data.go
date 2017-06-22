@@ -35,17 +35,17 @@ func min(n0 int, n1 int) int {
 }
 
 func main() {
-	const NumberOfRepetition = 20
+	const NumberOfRepetition = 100
 
-	const MaxProcessesNumber int = 15
+	const MaxProcessesNumber int = 25
 	const MaxCrashableProcesses int = (MaxProcessesNumber - 1) / 2
 	const MaxRangeValue int = 5
 
-	const MaxMeanDelay int = 0
-	const DelayStep int = 1
+	const MaxMeanDelay int = 10
+	const DelayStep int = 10
 
-	const MaxVariance int = 0
-	const VarianceStep int = 1
+	const MaxVariance int = 10
+	const VarianceStep int = 10
 	fmt.Println("processNumber\tcrashableProcesses\tmaxRangeVal\tdelayMean\tvariance")
 
 	for processNumber := 2; processNumber <= MaxProcessesNumber; processNumber++ {

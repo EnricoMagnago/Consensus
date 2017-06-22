@@ -34,5 +34,5 @@ run_collect_data: $(PACKAGES) install
 .PHONY: clean
 clean: 
 	rm -rf ../../pkg/*/consensus
-	rm -f ../../bin/consensus
-
+	rm -f ../../bin/collect_data
+	rm -f ../../bin/interactive

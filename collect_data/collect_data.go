@@ -57,7 +57,7 @@ func main() {
 						// file where to save data.
 						file, err := os.Create("../data/" + strconv.Itoa(processNumber) + "_" + strconv.Itoa(crashableProcesses) + "_" + strconv.Itoa(maxRangeVal) + "_" + strconv.Itoa(delayMean) + "_" + strconv.Itoa(variance) + ".csv")
 						check(err)
-						file.WriteString("time,messagesSended,messagesDelivered,decidedValue\n")
+						file.WriteString("time,messagesSent,messagesDelivered,decidedValue\n")
 
 						fmt.Printf("\n%d\t\t%d\t\t%d\t\t%d\t\t%d", processNumber, crashableProcesses, maxRangeVal, delayMean, variance)
 

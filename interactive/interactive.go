@@ -103,7 +103,7 @@ func main() {
 			fmt.Printf("All processes started.\n");
 		case START:
 			var id int = -1
-			for id >= processNumber && id < 0 {
+			for id >= processNumber || id < 0 {
 				fmt.Printf("id of the process to start [0;%d]: ", processNumber - 1)
 				readInt(&id)
 			}
